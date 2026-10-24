@@ -8,6 +8,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import hashlib
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -26,8 +27,11 @@ def atomic(path, value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--staging', type=Path, required=True)
+    parser.add_argument('--workers', type=int, choices=range(1, 9), default=4)
     args = parser.parse_args()
     staging = args.staging.resolve(strict=True)
+    lock_handle = (staging / 'publish.lock').open('a')
+    fcntl.flock(lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
     snapshot = staging / 'snapshot'
     gh = Path((staging / 'gh_path.txt').read_text()).resolve(strict=True)
     env = os.environ.copy()
@@ -42,6 +46,9 @@ def main():
         'repository': REPOSITORY, 'release_tag': tag, 'stage': 'starting', 'uploaded': [],
         'started_at_utc': datetime.now(timezone.utc).isoformat(), 'passed': False}
     started = time.monotonic()
+    report['upload_workers'] = args.workers
+    report.pop('error', None)
+    report.pop('error_type', None)
 
     def save(stage=None):
         if stage:
@@ -65,11 +72,27 @@ def main():
         return run(['git', *arguments], cwd=snapshot, allow_failure=allow_failure)
 
     def release_assets():
+        for attempt in range(4):
+            try:
+                result = run([gh, 'api', '--paginate', '--slurp',
+                              'repos/' + REPOSITORY + '/releases/' + str(report['release_id']) + '/assets?per_page=100'])
+                return {asset['name']: asset for page in json.loads(result.stdout) for asset in page}
+            except (RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError):
+                if attempt == 3:
+                    raise
+                time.sleep(2 + attempt)
+
+    def find_release():
+        # The tag endpoint omits drafts. The authenticated list includes them.
         result = run([gh, 'api', '--paginate', '--slurp',
-                      'repos/' + REPOSITORY + '/releases/' + str(report['release_id']) + '/assets?per_page=100'])
-        return {asset['name']: asset for page in json.loads(result.stdout) for asset in page}
+                      'repos/' + REPOSITORY + '/releases?per_page=100'])
+        matches = [item for page in json.loads(result.stdout) for item in page
+                   if item['tag_name'] == tag]
+        assert len(matches) <= 1, 'Multiple matching releases require review'
+        return matches[0] if matches else None
 
     def validate(asset, expected):
+        assert asset['state'] == 'uploaded', ('Incomplete remote upload', expected['asset_name'])
         assert asset['size'] == expected['bytes'], ('Wrong remote size', expected['asset_name'])
         value = asset.get('digest')
         assert value == 'sha256:' + expected['sha256'], ('Remote SHA256 unavailable or different', expected['asset_name'], value)
@@ -105,8 +128,8 @@ def main():
         git('push', '--set-upstream', 'origin', 'main')
         report['code_commit'] = git('rev-parse', 'HEAD').stdout.strip()
         save('creating_draft_release')
-        release = run([gh, 'api', 'repos/' + REPOSITORY + '/releases/tags/' + tag], allow_failure=True)
-        if release.returncode:
+        release_data = find_release()
+        if release_data is None:
             if git('rev-parse', '--verify', 'refs/tags/' + tag, allow_failure=True).returncode:
                 git('tag', tag)
             git('push', 'origin', 'refs/tags/' + tag)
@@ -125,9 +148,8 @@ RF-DETR license and the original weight terms remain applicable.
             run([gh, 'release', 'create', tag, '--repo', REPOSITORY, '--draft',
                  '--verify-tag', '--title', 'MARN-DETR AutoDL archive 2026-10-24',
                  '--notes-file', notes])
-            release_data = api('repos/' + REPOSITORY + '/releases/tags/' + tag)
-        else:
-            release_data = json.loads(release.stdout)
+            release_data = find_release()
+            assert release_data is not None
         report['release_id'] = release_data['id']
         report['release_url'] = 'https://github.com/' + REPOSITORY + '/releases/tag/' + tag
         save('uploading_artifacts')
@@ -137,7 +159,15 @@ RF-DETR license and the original weight terms remain applicable.
         pending, verified = [], []
         for artifact in manifest['artifacts']:
             if artifact['asset_name'] in remote:
-                verified.append(validate(remote[artifact['asset_name']], artifact))
+                asset = remote[artifact['asset_name']]
+                if asset['state'] == 'starter' and asset.get('digest') is None:
+                    # Only incomplete task-owned assets after an interrupted run;
+                    # never remove an uploaded or differently named asset.
+                    run([gh, 'api', '--method', 'DELETE', 'repos/' + REPOSITORY +
+                         '/releases/assets/' + str(asset['id'])])
+                    pending.append(artifact)
+                else:
+                    verified.append(validate(asset, artifact))
             else:
                 pending.append(artifact)
         report['uploaded'] = verified
@@ -157,34 +187,55 @@ RF-DETR license and the original weight terms remain applicable.
             assert link.resolve() == source
             # No --clobber: different existing assets are never removed.
             for attempt in range(3):
-                result = run([gh, 'release', 'upload', tag, str(link), '--repo', REPOSITORY],
-                             allow_failure=True, timeout=3600)
+                try:
+                    result = run([gh, 'release', 'upload', tag, str(link), '--repo', REPOSITORY],
+                                 allow_failure=True, timeout=600)
+                except subprocess.TimeoutExpired:
+                    result = subprocess.CompletedProcess([], 124, '', 'Upload attempt exceeded ten minutes')
                 if result.returncode == 0:
                     return artifact
                 existing = release_assets()
                 if artifact['asset_name'] in existing:
-                    validate(existing[artifact['asset_name']], artifact)
-                    return artifact
+                    partial = existing[artifact['asset_name']]
+                    if partial['state'] == 'starter' and partial.get('digest') is None:
+                        run([gh, 'api', '--method', 'DELETE', 'repos/' + REPOSITORY +
+                             '/releases/assets/' + str(partial['id'])])
+                    else:
+                        validate(partial, artifact)
+                        return artifact
                 if attempt == 2:
                     raise RuntimeError('Asset upload failed: ' + artifact['asset_name'] + ' ' + result.stderr[-1000:])
                 time.sleep(3)
 
-        with ThreadPoolExecutor(max_workers=2) as pool:
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
             jobs = {pool.submit(upload, item): item for item in pending}
+            upload_errors = []
             for job in as_completed(jobs):
-                artifact = job.result()
-                actual = release_assets()[artifact['asset_name']]
-                report['uploaded'].append(validate(actual, artifact))
-                save()
-                print('ARTIFACT_VERIFIED', len(report['uploaded']), '/', len(manifest['artifacts']),
-                      artifact['asset_name'], flush=True)
+                try:
+                    artifact = job.result()
+                    for check in range(5):
+                        actual = release_assets().get(artifact['asset_name'])
+                        if actual and actual.get('digest'):
+                            break
+                        time.sleep(2)
+                    assert actual is not None
+                    report['uploaded'].append(validate(actual, artifact))
+                    save()
+                    print('ARTIFACT_VERIFIED', len(report['uploaded']), '/', len(manifest['artifacts']),
+                          artifact['asset_name'], flush=True)
+                except Exception as error:
+                    upload_errors.append({'asset_name': jobs[job]['asset_name'],
+                                          'error': str(error)[-1500:]})
+                    report['upload_attempt_errors'] = upload_errors
+                    save()
+                    print('ARTIFACT_RECONCILIATION_NEEDED', jobs[job]['asset_name'], flush=True)
         actual = release_assets()
         complete = [validate(actual[item['asset_name']], item) for item in manifest['artifacts']]
         assert len(complete) == len(manifest['artifacts'])
         atomic(snapshot / 'artifacts/published_assets.json', {
             'repository': REPOSITORY, 'release_tag': tag, 'assets': complete,
             'verified_by': 'GitHub asset size and server-reported SHA256 digest'})
-        git('add', 'artifacts/published_assets.json')
+        git('add', 'artifacts/published_assets.json', 'tools/publish_github.py')
         if git('diff', '--cached', '--quiet', allow_failure=True).returncode:
             git('commit', '-m', 'Record verified GitHub Release asset hashes and download mapping')
         git('push', 'origin', 'main')

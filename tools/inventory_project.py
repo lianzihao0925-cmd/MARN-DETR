@@ -32,7 +32,8 @@ def classify(relative):
         return 'credential_or_environment'
     if name.endswith(('.pem', '.key', '.p12', '.pfx')):
         return 'credential_or_environment'
-    if name.endswith(('.pyc', '.pyo', '.lock')):
+    if name.endswith(('.pyc', '.pyo')) or (name.endswith('.lock') and
+                                         name not in {'uv.lock', 'poetry.lock', 'pdm.lock', 'pipfile.lock'}):
         return 'generated'
     if name.startswith('ssh_auth_debug') or name.startswith('autodl_bridge'):
         return 'connection_diagnostic'
