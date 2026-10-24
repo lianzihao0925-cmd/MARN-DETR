@@ -1,0 +1,9 @@
+{
+  "pid": 250000,
+  "started_unix": 1792236962.065222,
+  "cap_seconds": 7200,
+  "absolute_deadline_unix": 1792274400,
+  "phase_gpu_limit_hours": 4,
+  "prior_gpu_work_upper_bound_minutes": 15,
+  "log": "/root/autodl-tmp/project_marn-detr/experiments/marn_c5/frozen_screen_controller.log"
+}

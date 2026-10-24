@@ -1,0 +1,60 @@
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-16 21:34:56] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=13.00s)
+creating index...
+index created!
+[2026-10-16 21:35:09] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.39s)
+creating index...
+index created!
+[2026-10-16 21:35:10] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:35:10] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:35:11] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/experiments/marn_c3b/check_outputs/20261016_213451_158182 exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 42
+C3B_COMMIT_EMA_OK {"step": 1, "microbatches": 2, "unique_objects": 78, "matches": 1118, "invalid": 0, "low_confidence": 96, "low_iou": 23, "duplicates": 921, "eligible": 999, "fill": 44, "update": 6, "replace": 28, "valid_slots": 44, "covered_classes": 24, "global_step": 1, "accepted_reads": 0}
+C3B_COMMIT_EMA_OK {"step": 2, "microbatches": 2, "unique_objects": 125, "matches": 1924, "invalid": 0, "low_confidence": 229, "low_iou": 97, "duplicates": 1473, "eligible": 1598, "fill": 45, "update": 22, "replace": 58, "valid_slots": 89, "covered_classes": 40, "global_step": 2, "accepted_reads": 6226}
+C3B_COMMIT_EMA_OK {"step": 3, "microbatches": 2, "unique_objects": 58, "matches": 858, "invalid": 0, "low_confidence": 62, "low_iou": 44, "duplicates": 694, "eligible": 752, "fill": 34, "update": 6, "replace": 18, "valid_slots": 123, "covered_classes": 51, "global_step": 3, "accepted_reads": 6239}
+C3B_COMMIT_EMA_OK {"step": 4, "microbatches": 2, "unique_objects": 60, "matches": 1001, "invalid": 0, "low_confidence": 152, "low_iou": 99, "duplicates": 690, "eligible": 750, "fill": 27, "update": 10, "replace": 23, "valid_slots": 150, "covered_classes": 58, "global_step": 4, "accepted_reads": 6240}
+C3B_NATIVE_BOUNDARY_SAVED epoch=0 global_step=4
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-16 21:35:21] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:35:21] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+C3B_INFERENCE_ROUNDTRIP_OK regular
+[2026-10-16 21:35:23] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:35:23] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+C3B_INFERENCE_ROUNDTRIP_OK ema
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:129: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  'validate_assignment': lambda model, name, val: model.__pydantic_validator__.validate_assignment(model, name, val),  # pyright: ignore[reportAssignmentType]
+[2026-10-16 21:35:25] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:35:25] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/experiments/marn_c3b/check_outputs/20261016_213451_158182 exists and is not empty.
+Restoring states from the checkpoint path at /root/autodl-tmp/project_marn-detr/experiments/marn_c3b/check_outputs/20261016_213451_158182/c3b_epoch_boundary.ckpt
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 42
+Restored all states from the checkpoint at /root/autodl-tmp/project_marn-detr/experiments/marn_c3b/check_outputs/20261016_213451_158182/c3b_epoch_boundary.ckpt
+C3B_FULL_STATE_RESTORE_OK epoch=1 global_step=4
+C3B_RESUME_FIRST_BATCH epoch=1 batch_idx=0
+C3B_COMMIT_EMA_OK {"step": 5, "microbatches": 2, "unique_objects": 114, "matches": 1885, "invalid": 0, "low_confidence": 337, "low_iou": 115, "duplicates": 1319, "eligible": 1433, "fill": 35, "update": 20, "replace": 59, "valid_slots": 185, "covered_classes": 62, "global_step": 5, "accepted_reads": 6240}
+`Trainer.fit` stopped: `max_epochs=2` reached.
+C3B_EMA_CHECKPOINT_CHECK_COMPLETED

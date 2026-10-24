@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "device": "cpu",
+      "autocast_bf16": false,
+      "random_windows": 20,
+      "candidates_per_window": 48,
+      "edge_cases": [
+        "tie",
+        "threshold",
+        "nan_valid",
+        "nan_invalid",
+        "empty"
+      ],
+      "state_and_statistics_exact": true,
+      "strict_roundtrip": true
+    },
+    {
+      "device": "cuda",
+      "autocast_bf16": false,
+      "random_windows": 20,
+      "candidates_per_window": 48,
+      "edge_cases": [
+        "tie",
+        "threshold",
+        "nan_valid",
+        "nan_invalid",
+        "empty"
+      ],
+      "state_and_statistics_exact": true,
+      "strict_roundtrip": true
+    },
+    {
+      "device": "cuda",
+      "autocast_bf16": true,
+      "random_windows": 20,
+      "candidates_per_window": 48,
+      "edge_cases": [
+        "tie",
+        "threshold",
+        "nan_valid",
+        "nan_invalid",
+        "empty"
+      ],
+      "state_and_statistics_exact": true,
+      "strict_roundtrip": true
+    }
+  ],
+  "candidate_sha256": "a69b57f6768ba61824cb846f0fe25924cc9450fbc142d78c72609063a17e4424",
+  "original_sha256": "ab5d6d955f2eb845528749be973a73ce2769dfd8908610b8c76eefcb3a7f0474"
+}
+C3E_COMMIT_EXACT_CHECK_COMPLETED

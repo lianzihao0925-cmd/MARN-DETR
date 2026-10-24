@@ -1,0 +1,112 @@
+{
+  "correctness": {
+    "query_gradient_max": 0.045440673828125,
+    "key_gradient_max": 0.1886337399482727,
+    "bank_stopgrad": true,
+    "retrieval_count": 2,
+    "replay": {
+      "fp32": {
+        "exact": true,
+        "max_error": {
+          "pred_logits": 0.0,
+          "pred_boxes": 0.0
+        }
+      },
+      "bf16": {
+        "exact": true,
+        "max_error": {
+          "pred_logits": 0.0,
+          "pred_boxes": 0.0
+        }
+      }
+    },
+    "passed": true,
+    "seconds": 30.489984188228846
+  },
+  "smoke": {
+    "passed": true,
+    "paired_init_data_updates": true,
+    "seconds": 121.51043701171875,
+    "summaries": {
+      "query_only": {
+        "passed": true,
+        "kind": "query_only",
+        "global_step": 6,
+        "supervision_examples": 0,
+        "probe_examples": 0,
+        "probe_batches": 0,
+        "probe_seconds": 0.0,
+        "null_verified": false,
+        "key_gradient": true,
+        "out_gradient": true,
+        "router_gradient": false,
+        "native_checkpoint_strict": true,
+        "inference_export_strict": true
+      },
+      "random": {
+        "passed": true,
+        "kind": "random",
+        "global_step": 6,
+        "supervision_examples": 273,
+        "probe_examples": 0,
+        "probe_batches": 0,
+        "probe_seconds": 0.0,
+        "null_verified": false,
+        "key_gradient": true,
+        "out_gradient": true,
+        "router_gradient": false,
+        "native_checkpoint_strict": true,
+        "inference_export_strict": true
+      },
+      "online": {
+        "passed": true,
+        "kind": "online",
+        "global_step": 6,
+        "supervision_examples": 273,
+        "probe_examples": 80,
+        "probe_batches": 5,
+        "probe_seconds": 0.3793041817843914,
+        "null_verified": true,
+        "key_gradient": true,
+        "out_gradient": true,
+        "router_gradient": true,
+        "native_checkpoint_strict": true,
+        "inference_export_strict": true
+      }
+    }
+  },
+  "budget": [
+    {
+      "name": "mechanism_audit",
+      "seconds": 34.16512060165405,
+      "exit_code": 0
+    },
+    {
+      "name": "correctness",
+      "seconds": 36.26776671409607,
+      "exit_code": 1
+    },
+    {
+      "name": "correctness2",
+      "seconds": 36.41574740409851,
+      "exit_code": 0
+    },
+    {
+      "name": "online_smoke",
+      "seconds": 121.62259697914124,
+      "exit_code": 0
+    },
+    {
+      "name": "online_screen"
+    }
+  ],
+  "launch": {
+    "pid": 255816,
+    "started_unix": 1792244208.154257,
+    "job": "online_screen",
+    "maximum_seconds": 6500,
+    "absolute_deadline": 1792274400,
+    "smoke_passed": true
+  },
+  "scope": "engineering smoke only; precision metrics not formal validation"
+}

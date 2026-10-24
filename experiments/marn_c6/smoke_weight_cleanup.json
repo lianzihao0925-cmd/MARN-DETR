@@ -1,0 +1,68 @@
+{
+  "scope": "passed engineering smoke weights only; formal and previous checkpoints retained",
+  "time_unix": 1792244411.8370724,
+  "files": [
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/best_regular.ckpt",
+      "bytes": 516827775
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/best_ema.ckpt",
+      "bytes": 516827903
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/last.ckpt",
+      "bytes": 516827967
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/last_regular.pth",
+      "bytes": 129365117
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/last_ema.pth",
+      "bytes": 129365117
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/best_regular.ckpt",
+      "bytes": 516829500
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/best_ema.ckpt",
+      "bytes": 516829628
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/last.ckpt",
+      "bytes": 516829692
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/last_regular.pth",
+      "bytes": 129365181
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/last_ema.pth",
+      "bytes": 129365181
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/best_regular.ckpt",
+      "bytes": 516967219
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/best_ema.ckpt",
+      "bytes": 516967347
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/last.ckpt",
+      "bytes": 516967411
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/last_regular.pth",
+      "bytes": 129365181
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/last_ema.pth",
+      "bytes": 129365181
+    }
+  ],
+  "status": "completed",
+  "freed_bytes": 5428065400
+}

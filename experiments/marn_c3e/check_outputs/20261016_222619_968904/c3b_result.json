@@ -1,0 +1,118 @@
+{
+  "passed": true,
+  "stage": "complete",
+  "scope": "8 real train microbatches + 2 after native recovery; not AP or speed evidence",
+  "commits": [
+    {
+      "step": 1,
+      "microbatches": 2,
+      "unique_objects": 78,
+      "matches": 1118,
+      "invalid": 0,
+      "low_confidence": 96,
+      "low_iou": 23,
+      "duplicates": 921,
+      "eligible": 999,
+      "fill": 44,
+      "update": 6,
+      "replace": 28,
+      "valid_slots": 44,
+      "covered_classes": 24,
+      "global_step": 1,
+      "accepted_reads": 0
+    },
+    {
+      "step": 2,
+      "microbatches": 2,
+      "unique_objects": 125,
+      "matches": 1924,
+      "invalid": 0,
+      "low_confidence": 229,
+      "low_iou": 97,
+      "duplicates": 1473,
+      "eligible": 1598,
+      "fill": 45,
+      "update": 22,
+      "replace": 58,
+      "valid_slots": 89,
+      "covered_classes": 40,
+      "global_step": 2,
+      "accepted_reads": 6226
+    },
+    {
+      "step": 3,
+      "microbatches": 2,
+      "unique_objects": 58,
+      "matches": 858,
+      "invalid": 0,
+      "low_confidence": 63,
+      "low_iou": 43,
+      "duplicates": 694,
+      "eligible": 752,
+      "fill": 34,
+      "update": 6,
+      "replace": 18,
+      "valid_slots": 123,
+      "covered_classes": 51,
+      "global_step": 3,
+      "accepted_reads": 6240
+    },
+    {
+      "step": 4,
+      "microbatches": 2,
+      "unique_objects": 61,
+      "matches": 1001,
+      "invalid": 0,
+      "low_confidence": 152,
+      "low_iou": 98,
+      "duplicates": 690,
+      "eligible": 751,
+      "fill": 27,
+      "update": 8,
+      "replace": 26,
+      "valid_slots": 150,
+      "covered_classes": 58,
+      "global_step": 4,
+      "accepted_reads": 6240
+    },
+    {
+      "step": 5,
+      "microbatches": 2,
+      "unique_objects": 113,
+      "matches": 1885,
+      "invalid": 0,
+      "low_confidence": 339,
+      "low_iou": 110,
+      "duplicates": 1323,
+      "eligible": 1436,
+      "fill": 35,
+      "update": 20,
+      "replace": 58,
+      "valid_slots": 185,
+      "covered_classes": 62,
+      "global_step": 5,
+      "accepted_reads": 6240
+    }
+  ],
+  "validation_bank_frozen": "passed",
+  "inference_regular_and_ema": "exact state and logits/boxes roundtrip passed",
+  "full_state_restore": "passed",
+  "resume_two_microbatches": "passed",
+  "peak_allocated_GiB": 4.821005821228027,
+  "peak_reserved_GiB": 5.611328125,
+  "temporary_weights": [
+    {
+      "file": "c3b_epoch_boundary.ckpt",
+      "bytes": 516672971
+    },
+    {
+      "file": "ema_test.pth",
+      "bytes": 129295941
+    },
+    {
+      "file": "regular_test.pth",
+      "bytes": 129295941
+    }
+  ],
+  "elapsed_seconds": 38.736955761909485
+}

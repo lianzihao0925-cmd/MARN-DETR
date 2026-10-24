@@ -1,0 +1,1 @@
+BUDGET_JOB_DONE {"name": "online_screen", "started_unix": 1792244208.2904003, "limit_seconds": 6500, "command": ["/root/miniconda3/envs/marn-detr/bin/python", "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/run_online_screen.py", "--tag", "online_screen"], "pid": 255820, "exit_code": 0, "seconds": 4820.877694129944, "finished_unix": 1792249029.1681066}

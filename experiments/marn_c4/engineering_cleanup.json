@@ -1,0 +1,54 @@
+[
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223709_989708/last.ckpt",
+    "bytes": 516687815
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223709_989708/best_regular.ckpt",
+    "bytes": 516011429
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223709_989708/best_ema.ckpt",
+    "bytes": 516687815
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223937_794641/last.ckpt",
+    "bytes": 516690439
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223937_794641/best_regular.ckpt",
+    "bytes": 516012261
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223937_794641/last_regular_test.pth",
+    "bytes": 129295941
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223937_794641/best_ema.ckpt",
+    "bytes": 516012389
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_outputs/20261016_223937_794641/last_ema_test.pth",
+    "bytes": 129295941
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/query_only_check/ema.pth",
+    "bytes": 129295941
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/query_only_check/last.ckpt",
+    "bytes": 516688455
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/query_only_check/best_regular.ckpt",
+    "bytes": 516688263
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/query_only_check/best_ema.ckpt",
+    "bytes": 516688327
+  },
+  {
+    "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/query_only_check/regular.pth",
+    "bytes": 129295941
+  }
+]

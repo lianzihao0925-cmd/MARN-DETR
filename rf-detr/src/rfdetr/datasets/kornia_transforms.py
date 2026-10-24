@@ -1,0 +1,1592 @@
+# ------------------------------------------------------------------------
+# RF-DETR
+# Copyright (c) 2025 Roboflow. All Rights Reserved.
+# Licensed under the Apache License, Version 2.0 [see LICENSE for details]
+# ------------------------------------------------------------------------
+"""Kornia-based GPU augmentation pipeline for RF-DETR training.
+
+This module provides GPU-side augmentation as an alternative to the CPU-based Albumentations pipeline.  All transforms
+run on the device where the batch already resides (typically CUDA), avoiding a CPU-GPU round-trip per sample.
+
+Supports detection (boxes only), segmentation (boxes + instance masks), and
+keypoints (boxes + visible joint coordinates).
+
+Usage::
+
+    from rfdetr.datasets.kornia_transforms import (
+        build_kornia_pipeline,
+        build_normalize,
+        collate_boxes,
+        collate_masks,
+        unpack_boxes,
+    )
+
+    # Detection:
+    pipeline = build_kornia_pipeline(aug_config, resolution=560)
+    normalize = build_normalize()
+    boxes_padded, valid = collate_boxes(targets, device)
+    img_aug, boxes_aug = pipeline(img, boxes_padded)
+    img_aug = normalize(img_aug)
+    targets = unpack_boxes(boxes_aug, valid, targets, H, W)
+
+    # Segmentation (Phase 2):
+    pipeline = build_kornia_pipeline(aug_config, resolution=560, with_masks=True)
+    normalize = build_normalize()
+    boxes_padded, valid = collate_boxes(targets, device)
+    masks_padded = collate_masks(targets, device, n_max=valid.shape[1], image_height=H, image_width=W)
+    img_aug, boxes_aug, masks_aug = pipeline(img, boxes_padded, masks_padded)
+    img_aug = normalize(img_aug)
+    targets = unpack_boxes(boxes_aug, valid, targets, H, W, masks_aug=masks_aug)
+"""
+
+from __future__ import annotations
+
+import numbers
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, cast
+
+import numpy as np
+import torch
+from torch import Tensor
+
+from rfdetr.config import AugmentationBackend
+from rfdetr.datasets._aug_utils import filter_keypoint_hflip_augmentations, keypoint_flip_permutation
+from rfdetr.utilities.logger import get_logger
+
+if TYPE_CHECKING:
+    # Annotation only: the module imports Kornia, an optional dependency, at import time.
+    from rfdetr.datasets._kornia_pixel_affine import PixelTranslatedAffine
+
+logger = get_logger()
+
+__doctest_requires__ = {"build_kornia_pipeline": ["kornia"], "keypoint_horizontal_flip_mask": ["kornia"]}
+
+#: ImageNet channel-wise mean (RGB order).
+IMAGENET_MEAN = (0.485, 0.456, 0.406)
+#: ImageNet channel-wise standard deviation (RGB order).
+IMAGENET_STD = (0.229, 0.224, 0.225)
+
+#: Albumentations' own default ``blur_limit`` for ``A.Blur``, which is a range rather than a single kernel size
+#: (``A.Blur(blur_limit=7).blur_limit`` normalises to this same pair). A configured pair equal to it is the library
+#: default rather than a deliberate user choice, so :func:`_as_odd_kernel` reports its collapse at ``DEBUG``.
+_ALBUMENTATIONS_BLUR_LIMIT_DEFAULT: tuple[int, int] = (3, 7)
+
+#: Threshold applied to float32 mask values produced by Kornia augmentation.
+#: Kornia forces nearest-neighbour resampling for the ``"mask"`` data key, so
+#: output values are already in {0.0, 1.0}; the threshold is a defensive cast.
+#: Must be updated if the pipeline is ever switched to bilinear interpolation.
+_MASK_BINARIZE_THRESHOLD: float = 0.5
+
+
+def _has_cuda_device() -> bool:
+    """Return ``True`` when the runtime has a CUDA accelerator available.
+
+    Uses the fork-safe global ``DEVICE`` constant from ``rfdetr.config`` so that the CUDA driver context is not created
+    in the main process before forking (fork-based DDP and some notebook environments).
+
+    Returns:
+        ``True`` if at least one CUDA device is reachable; ``False`` otherwise.
+
+    Examples:
+        >>> _has_cuda_device()  # doctest: +SKIP
+        False
+    """
+    from rfdetr.config import DEVICE
+
+    return str(DEVICE).startswith("cuda")
+
+
+def resolve_augmentation_backend(backend: str, *, has_cuda: bool | None = None) -> AugmentationBackend:
+    """Resolve an ``augmentation_backend`` value to a concrete :class:`AugmentationBackend`.
+
+    Auto-pick priority (for ``"cpu"``/``"auto"``) is implemented by
+    :meth:`AugmentationBackend.from_str`; this function supplies the fork-safe CUDA check that
+    gates every Kornia pick for ``"cpu"``/``"auto"`` (neither resolves to Kornia without CUDA) and
+    fails fast when ``"albumentations"``/``"albu"``
+    is explicitly requested but Albumentations is not installed.
+
+    This is a pure resolution step — explicit ``"kornia"``/``"gpu"`` requests always pass through
+    to :attr:`AugmentationBackend.KORNIA` regardless of *has_cuda*, so a saved/forced concrete
+    backend resolves deterministically. Callers that need to fail fast when an explicit GPU
+    request cannot actually run (no CUDA device, or Kornia not installed) should additionally call
+    :func:`require_gpu_backend_ready` before building anything that depends on the result.
+
+    Note:
+        ``"cpu"`` and ``"auto"`` resolution depends on which optional packages happen to be
+        installed (Albumentations and/or Kornia are both optional, via ``pip install
+        'rfdetr[augment]'``). The same ``backend`` value can therefore resolve to a different
+        concrete backend across environments — e.g. CI without ``[augment]`` installed resolves
+        to ``TV`` (torchvision), while a local dev environment with Albumentations installed
+        resolves to ``ALBU``. Pass ``"torchvision"`` explicitly to guarantee torchvision
+        regardless of environment.
+
+    Args:
+        backend: One of ``"cpu"``, ``"auto"``, ``"torchvision"``, ``"albumentations"``,
+            ``"kornia"``, or legacy ``"tv"``/``"albu"``/``"gpu"``.
+        has_cuda: Whether a CUDA device is available. When ``None`` (default), computed via this
+            module's fork-safe :func:`_has_cuda_device`. Callers with their own fork-safe CUDA
+            check (e.g. :mod:`rfdetr.training.module_data`) may pass it explicitly so patching
+            their own check affects resolution.
+
+    Returns:
+        Resolved :class:`AugmentationBackend` member.
+
+    Raises:
+        ValueError: When *backend* is not a recognised value.
+        ImportError: When *backend* is explicitly ``"albumentations"``/``"albu"`` but
+            Albumentations is not installed.
+
+    Examples:
+        >>> resolve_augmentation_backend("albumentations")
+        <AugmentationBackend.ALBU: 'albumentations'>
+        >>> resolve_augmentation_backend("kornia")
+        <AugmentationBackend.KORNIA: 'kornia'>
+        >>> resolve_augmentation_backend("torchvision")
+        <AugmentationBackend.TV: 'torchvision'>
+    """
+    if backend in (AugmentationBackend.ALBU, "albumentations", "albu"):
+        _require_albu()
+    if has_cuda is None:
+        has_cuda = _has_cuda_device()
+    return AugmentationBackend.from_str(backend, has_cuda=has_cuda)
+
+
+def require_gpu_backend_ready(requested_backend: str, *, has_cuda: bool) -> None:
+    """Fail fast when an explicit Kornia/GPU backend request cannot run in this environment.
+
+    Only gates explicit ``"kornia"``/``"gpu"`` requests. ``"auto"``/``"cpu"`` silently fall back to
+    the best installed CPU backend elsewhere (see :func:`resolve_augmentation_backend`) and are
+    never gated here — an unavailable GPU is not an error for those sentinels, only for a backend
+    the caller explicitly pinned to Kornia.
+
+    Args:
+        requested_backend: Raw ``augmentation_backend`` value as configured by the caller, before
+            legacy-alias/auto-pick resolution.
+        has_cuda: Whether a CUDA device is available, as determined by the caller's own fork-safe
+            check.
+
+    Raises:
+        RuntimeError: ``kornia``/``gpu`` is explicitly requested but no CUDA device is available.
+        ImportError: ``kornia``/``gpu`` is explicitly requested, CUDA is available, but Kornia is
+            not installed.
+
+    Examples:
+        >>> require_gpu_backend_ready("cpu", has_cuda=False)
+    """
+    if requested_backend not in (AugmentationBackend.KORNIA, "kornia", "gpu"):
+        return
+    if not has_cuda:
+        raise RuntimeError(f"augmentation_backend={requested_backend!r} requires a CUDA device, but none is available.")
+    _require_kornia()
+
+
+def is_gpu_postprocess(resolved: AugmentationBackend) -> bool:
+    """Return ``True`` when the resolved backend defers augmentation/normalization to the GPU.
+
+    Kornia is the only on-device (GPU) backend, so a resolved backend of :attr:`AugmentationBackend.KORNIA`
+    means the CPU dataset pipeline must skip its Albumentations augmentation wrappers and ``Normalize`` step
+    (both are applied later on-device). ``TV`` and ``ALBU`` keep the full CPU pipeline.
+
+    This is the single source of truth for the ``gpu_postprocess`` flag threaded through every dataset builder;
+    call it instead of re-writing ``resolved == AugmentationBackend.KORNIA`` inline so the predicate stays in one
+    place.
+
+    Args:
+        resolved: A concrete backend as returned by :func:`resolve_augmentation_backend` or
+            :func:`resolve_backend_for_build`.
+
+    Returns:
+        ``True`` when *resolved* is Kornia (GPU postprocessing), ``False`` otherwise.
+
+    Examples:
+        >>> from rfdetr.config import AugmentationBackend
+        >>> is_gpu_postprocess(AugmentationBackend.KORNIA)
+        True
+        >>> is_gpu_postprocess(AugmentationBackend.TV)
+        False
+    """
+    return resolved == AugmentationBackend.KORNIA
+
+
+def resolve_backend_for_build(
+    requested_backend: str | AugmentationBackend,
+    *,
+    has_cuda: bool | None = None,
+) -> AugmentationBackend:
+    """Fail fast, then resolve, an ``augmentation_backend`` value in one call for dataset builders.
+
+    Bundles the two steps every dataset builder must perform before wiring ``gpu_postprocess``:
+
+    1. :func:`require_gpu_backend_ready` — raise immediately when an explicit ``"kornia"``/``"gpu"`` request
+       cannot actually run in this environment (no CUDA device, or Kornia not installed).
+    2. :func:`resolve_augmentation_backend` — map the (possibly sentinel/legacy) value to a concrete
+       :class:`AugmentationBackend` member.
+
+    Combining them here makes the fail-fast structural rather than something each builder must remember to call
+    separately, so a builder cannot silently skip the readiness check. Both steps share a single *has_cuda*
+    value, computed once.
+
+    Args:
+        requested_backend: Raw ``augmentation_backend`` value as configured by the caller, before
+            legacy-alias/auto-pick resolution — e.g. ``"cpu"``, ``"auto"``, ``"torchvision"``,
+            ``"kornia"``, or legacy ``"gpu"``/``"tv"``/``"albu"``.
+        has_cuda: Whether a CUDA device is available. When ``None`` (default), computed once via this
+            module's fork-safe :func:`_has_cuda_device` and reused for both steps.
+
+    Returns:
+        Resolved :class:`AugmentationBackend` member.
+
+    Raises:
+        RuntimeError: ``"kornia"``/``"gpu"`` is explicitly requested but no CUDA device is available.
+        ImportError: ``"kornia"``/``"gpu"`` is explicitly requested (with CUDA) but Kornia is not installed,
+            or ``"albumentations"``/``"albu"`` is explicitly requested but Albumentations is not installed.
+        ValueError: When *requested_backend* is not a recognised value.
+
+    Examples:
+        >>> resolve_backend_for_build("torchvision", has_cuda=False)
+        <AugmentationBackend.TV: 'torchvision'>
+    """
+    if has_cuda is None:
+        has_cuda = _has_cuda_device()
+    require_gpu_backend_ready(requested_backend, has_cuda=has_cuda)
+    return resolve_augmentation_backend(requested_backend, has_cuda=has_cuda)
+
+
+def _require_kornia() -> None:
+    """Verify that Kornia is importable, raising a clear error if not.
+
+    Raises:
+        ImportError: When ``kornia`` is not installed, with an install hint.
+    """
+    if not AugmentationBackend.KORNIA._is_available():
+        raise ImportError("GPU augmentation requires kornia. Install with: pip install 'rfdetr[augment]'")
+
+
+def _require_albu() -> None:
+    """Verify that Albumentations is importable, raising a clear error if not.
+
+    Raises:
+        ImportError: When ``albumentations`` is not installed, with an install hint.
+    """
+    if not AugmentationBackend.ALBU._is_available():
+        raise ImportError(
+            "Custom Albumentations augmentations require albumentations. Install with: pip install 'rfdetr[augment]'"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Registry: Albumentations key -> Kornia factory
+# ---------------------------------------------------------------------------
+
+
+def _as_range(value: Any) -> tuple[float, float]:
+    """Normalise a scalar-or-pair config value to a ``(min, max)`` tuple.
+
+    Albumentations accepts either form for range parameters such as ``sigma`` and ``std_range``, so the builders below
+    take both rather than raising a bare ``TypeError`` from inside Kornia on a config that is valid for the CPU path.
+    :func:`_make_rotate` also accepts a scalar or a pair for ``limit``, but with different scalar semantics: it
+    expands a scalar ``v`` symmetrically to ``(-v, v)``, whereas this helper expands it to the degenerate ``(v, v)``.
+
+    Args:
+        value: A scalar, a 1-element sequence (a degenerate ``(v, v)`` range), or a 2-element ``(min, max)`` pair.
+
+    Returns:
+        The value as a ``(min, max)`` float pair: ``(v, v)`` for a scalar or 1-element sequence, ``(min, max)`` for a
+        pair.
+
+    Raises:
+        ValueError: If ``value`` is an empty sequence or has more than two elements, rather than silently dropping
+            trailing elements.
+    """
+    if isinstance(value, (list, tuple)):
+        if len(value) == 1:
+            return (float(value[0]), float(value[0]))
+        if len(value) == 2:
+            return (float(value[0]), float(value[1]))
+        raise ValueError(
+            "Range parameter must be a scalar, a 1-element sequence, or a 2-element (min, max) pair; "
+            f"got a {len(value)}-element sequence: {value!r}"
+        )
+    return (float(value), float(value))
+
+
+def _as_odd_kernel(value: Any, transform: str, default_pair: tuple[int, int] | None = None) -> int:
+    """Resolve an Albumentations ``blur_limit`` to a single odd Kornia kernel size.
+
+    Albumentations samples an odd kernel from a ``(min, max)`` range per call; Kornia takes one fixed kernel size, so a
+    non-degenerate pair collapses to its upper bound and the divergence is logged. The result is forced odd and at
+    least 3, which Kornia requires, and to an ``int``: a float such as ``5.0`` builds but crashes at forward time.
+
+    Args:
+        value: A scalar kernel size, a 1-element sequence (a degenerate single kernel size), or a ``(min, max)`` pair.
+        transform: Name used in the log message, so the log says which augmentation collapsed.
+        default_pair: The Albumentations default range for ``transform``, when its default is a range rather than a
+            scalar. A ``value`` equal to it is the library default rather than a deliberate user choice, so its
+            collapse is logged at ``DEBUG``; every other non-degenerate pair is an explicit request the GPU path
+            cannot honor and stays at ``WARNING``.
+
+    Returns:
+        An odd ``int`` kernel size of at least 3.
+
+    Raises:
+        ValueError: If ``value`` is an empty sequence or has more than two elements, rather than silently dropping
+            trailing elements.
+    """
+    collapsed_from: tuple[Any, Any] | None = None
+    if isinstance(value, (list, tuple)):
+        if len(value) == 1:
+            value = value[0]
+        elif len(value) == 2:
+            if value[0] != value[1]:
+                collapsed_from = (value[0], value[1])
+            value = max(value)
+        else:
+            raise ValueError(
+                "Kernel size parameter must be a scalar, a 1-element sequence, or a 2-element (min, max) pair; "
+                f"got a {len(value)}-element sequence: {value!r}"
+            )
+    kernel = int(value)
+    if kernel % 2 == 0:
+        kernel += 1
+    kernel = max(3, kernel)
+    if collapsed_from is not None:
+        # Report the kernel actually handed to Kornia, not the pre-rounding upper bound: (3, 6) resolves to 7.
+        # A pair matching the library default is an expected, documented divergence, so only a range the user
+        # chose explicitly is worth a warning.
+        is_library_default = default_pair is not None and collapsed_from == tuple(default_pair)
+        log = logger.debug if is_library_default else logger.warning
+        log(
+            "GPU augmentation (Kornia) uses a fixed kernel_size=%d for %s "
+            "(Kornia does not sample the kernel size per call). "
+            "CPU augmentation (albumentations) samples an odd kernel from [%s, %s].",
+            kernel,
+            transform,
+            collapsed_from[0],
+            collapsed_from[1],
+        )
+    return kernel
+
+
+def _make_horizontal_flip(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomHorizontalFlip`` from aug_config params."""
+    from kornia.augmentation import RandomHorizontalFlip
+
+    return RandomHorizontalFlip(p=params.get("p", 0.5))
+
+
+def _make_vertical_flip(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomVerticalFlip`` from aug_config params."""
+    from kornia.augmentation import RandomVerticalFlip
+
+    return RandomVerticalFlip(p=params.get("p", 0.5))
+
+
+def _make_rotate(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomRotation`` from aug_config params.
+
+    The ``limit`` parameter may be a scalar (symmetric range) or a tuple.
+    """
+    from kornia.augmentation import RandomRotation
+
+    limit = params.get("limit", 15)
+    degrees = tuple(limit) if isinstance(limit, (list, tuple)) else (-limit, limit)
+    rotation = RandomRotation(degrees=degrees, p=params.get("p", 0.5))
+
+    # Kornia has changed the public parameter key for rotation ranges across releases.
+    # Keep the legacy ``degrees`` entry available because our tests and downstream
+    # callers inspect it directly.
+    flags = getattr(rotation, "flags", None)
+    if isinstance(flags, dict) and "degrees" not in flags:
+        flags["degrees"] = degrees
+
+    return rotation
+
+
+#: Smallest and largest signed 64-bit integers. ``PixelTranslatedAffine`` samples offsets with
+#: ``torch.randint(lower, upper + 1)``, so a pixel bound must satisfy ``lower >= _INT64_MIN`` and
+#: ``upper < _INT64_MAX``.
+_INT64_MIN: int = torch.iinfo(torch.int64).min
+_INT64_MAX: int = torch.iinfo(torch.int64).max
+
+#: Value Albumentations ``Affine`` gives an axis missing from a per-axis ``scale`` or ``shear`` mapping (the default of
+#: its ``_handle_dict_arg``). It is ``1.0`` for both, so ``shear={"x": 0}`` is a one-degree vertical shear there.
+_ALBUMENTATIONS_AFFINE_MISSING_AXIS: float = 1.0
+
+#: OpenCV interpolation codes Albumentations ``Affine`` accepts for ``interpolation`` and ``mask_interpolation``:
+#: nearest, linear, cubic, area and Lanczos-4. Each output pixel of a whole-pixel shift copies exactly one source pixel,
+#: so all five produce the same result there.
+_OPENCV_INTERPOLATION_CODES: tuple[int, ...] = (0, 1, 2, 3, 4)
+
+#: OpenCV ``border_mode`` codes a whole-pixel shift reproduces on Kornia, mapped to ``PixelTranslatedAffine`` padding
+#: modes: ``cv2.BORDER_CONSTANT`` and ``cv2.BORDER_REPLICATE``.
+_PIXEL_AFFINE_PADDING_MODES: dict[int, str] = {0: "zeros", 1: "border"}
+
+#: Deprecated Albumentations 1.x ``Affine`` aliases, mapped to the parameter that replaced each. Albumentations 1.x
+#: copies a set alias onto its replacement (2.x ignores it with a warning); no Kornia builder reads them, so a set alias
+#: would otherwise bypass the border and fill checks of the pixel-translation path.
+_ALBUMENTATIONS_1X_AFFINE_ALIASES: dict[str, str] = {"cval": "fill", "cval_mask": "fill_mask", "mode": "border_mode"}
+
+
+def _pixel_offset(value: Any) -> int:
+    """Read one Albumentations ``translate_px`` offset as an exact number of pixels.
+
+    Albumentations accepts any real number here and truncates it with ``int()`` when it samples. Integers of any type
+    (NumPy integers included) and integral floats such as ``4.0`` denote a whole-pixel offset and are accepted. A
+    fractional offset is refused rather than truncated, so the configured shift is never silently changed. Booleans are
+    integers to Python but never a deliberate offset.
+
+    Args:
+        value: One configured offset.
+
+    Returns:
+        The offset as a Python ``int``, the type ``torch.randint`` requires.
+
+    Raises:
+        ValueError: If ``value`` is a boolean, is not a real number, or is not a whole number.
+
+    Examples:
+        >>> _pixel_offset(4.0)
+        4
+    """
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError(f"Affine translate_px offsets must be integers, not booleans; got {value!r}.")
+    if isinstance(value, numbers.Integral):
+        return int(value)
+    if isinstance(value, numbers.Real) and float(value).is_integer():
+        return int(float(value))
+    raise ValueError(
+        f"Affine translate_px offsets must be whole pixels (integers or integral floats such as 4.0); got {value!r}. "
+        "Round a fractional offset explicitly: the Kornia backend does not truncate it."
+    )
+
+
+def _pixel_translation_bounds(value: Any) -> tuple[tuple[int, int], tuple[int, int]]:
+    """Normalize Albumentations pixel translation to inclusive x/y ranges.
+
+    Args:
+        value: An offset, a ``(min, max)`` pair, or a mapping with ``x`` and/or ``y`` entries holding either; a missing
+            axis is ``0``. Each offset may be any integer or integral float, as read by :func:`_pixel_offset`.
+
+    Returns:
+        Separate horizontal and vertical ``int`` bounds.
+
+    Raises:
+        ValueError: If a mapping has keys other than ``x``/``y``, an axis is neither an offset nor a two-element range,
+            an offset is not a whole number of pixels, a range is reversed, or a bound does not fit the signed 64-bit
+            range ``torch.randint`` samples from.
+
+    Examples:
+        >>> _pixel_translation_bounds({"x": (-2, 4), "y": 3.0})
+        ((-2, 4), (3, 3))
+    """
+    if isinstance(value, dict):
+        if not value.keys() & {"x", "y"} or value.keys() - {"x", "y"}:
+            raise ValueError("Affine translate_px must have only 'x' and/or 'y' keys.")
+        components = (value.get("x", 0), value.get("y", 0))
+    else:
+        components = (value, value)
+
+    bounds: list[tuple[int, int]] = []
+    for component in components:
+        if not isinstance(component, (tuple, list)):
+            lower = upper = _pixel_offset(component)
+        elif len(component) == 2:
+            lower, upper = _pixel_offset(component[0]), _pixel_offset(component[1])
+        else:
+            raise ValueError(
+                "Affine translate_px axes must be a single offset or a two-element (min, max) range of integers; "
+                f"got {component!r}."
+            )
+        if lower > upper:
+            raise ValueError(f"Affine translate_px range minimum must not exceed maximum; got {component!r}.")
+        if lower < _INT64_MIN or upper >= _INT64_MAX:
+            raise ValueError(f"Affine translate_px offsets must fit in a signed 64-bit integer; got {component!r}.")
+        bounds.append((lower, upper))
+    return bounds[0], bounds[1]
+
+
+def _affine_range_is(value: Any, identity: float) -> bool:
+    """Return whether an Albumentations ``Affine`` geometry range is fixed at its identity value.
+
+    The value is read the way Albumentations reads it: a scalar ``v`` is ``(v, v)``, a pair is ``(min, max)``, and a
+    per-axis mapping holds a scalar or pair for ``x`` and ``y``, with a missing axis set to
+    :data:`_ALBUMENTATIONS_AFFINE_MISSING_AXIS`.
+
+    Args:
+        value: A configured ``rotate``, ``shear`` or ``scale``.
+        identity: The value at which the parameter leaves the image unchanged: ``0`` for ``rotate`` and ``shear``,
+            ``1`` for ``scale``.
+
+    Returns:
+        ``True`` when every axis is a two-element range whose endpoints both equal ``identity``.
+
+    Examples:
+        >>> _affine_range_is({"x": (1.0, 1.0)}, 1.0)
+        True
+        >>> _affine_range_is({"x": 0}, 0.0)
+        False
+    """
+    missing = _ALBUMENTATIONS_AFFINE_MISSING_AXIS
+    axes: tuple[Any, ...] = (value.get("x", missing), value.get("y", missing)) if isinstance(value, dict) else (value,)
+    for axis in axes:
+        endpoints = tuple(axis) if isinstance(axis, (list, tuple)) else (axis, axis)
+        if len(endpoints) != 2 or any(endpoint != identity for endpoint in endpoints):
+            return False
+    return True
+
+
+def _require_pure_pixel_translation(params: dict[str, Any]) -> None:
+    """Refuse ``Affine`` geometry other than translation, which ``PixelTranslatedAffine`` cannot apply.
+
+    Args:
+        params: The ``Affine`` aug_config params. An unset or ``None`` ``rotate``, ``shear`` or ``scale`` is the
+            identity.
+
+    Raises:
+        ValueError: If ``rotate`` or ``shear`` is not fixed at ``0``, or ``scale`` is not fixed at ``1``, read as
+            Albumentations reads them (see :func:`_affine_range_is`).
+
+    Examples:
+        >>> _require_pure_pixel_translation({"translate_px": 4, "scale": {"x": 1.0}, "shear": (0, 0)})
+    """
+    for name, identity in (("rotate", 0.0), ("shear", 0.0), ("scale", 1.0)):
+        value = params.get(name)
+        if value is not None and not _affine_range_is(value, identity):
+            raise ValueError(
+                f"Kornia Affine translate_px supports pure pixel translation only ({name}={identity:g}); "
+                f"got {name}={value!r}. Use the albumentations backend otherwise."
+            )
+
+
+def _pixel_affine_padding_mode(params: dict[str, Any]) -> str:
+    """Resolve the ``Affine`` border options to the ``PixelTranslatedAffine`` padding mode that reproduces them.
+
+    A replicate border never reads ``fill`` or ``fill_mask``, on Albumentations or here, so those are checked only for a
+    constant border, where the pixel-translation path can fill with zeros alone.
+
+    Args:
+        params: The ``Affine`` aug_config params.
+
+    Returns:
+        ``"zeros"`` for ``cv2.BORDER_CONSTANT`` and ``"border"`` for ``cv2.BORDER_REPLICATE``.
+
+    Raises:
+        ValueError: If ``border_mode`` is neither constant (``0``) nor replicate (``1``), or a constant border has a
+            nonzero ``fill`` or ``fill_mask``.
+
+    Examples:
+        >>> _pixel_affine_padding_mode({"border_mode": 1, "fill": 5})
+        'border'
+    """
+    border_mode = params.get("border_mode", 0)
+    if border_mode not in _PIXEL_AFFINE_PADDING_MODES:
+        raise ValueError(
+            "Kornia Affine translate_px supports only constant (0) or replicate (1) borders; "
+            f"got border_mode={border_mode!r}. Use the albumentations backend otherwise."
+        )
+    if border_mode == 0:
+        for name in ("fill", "fill_mask"):
+            # ``np.asarray`` lets an array-valued fill compare elementwise instead of failing on its truth value.
+            if np.any(np.asarray(params.get(name, 0)) != 0):
+                raise ValueError(
+                    f"Kornia Affine translate_px requires {name}=0 with a constant border; "
+                    f"got {name}={params[name]!r}. Use the albumentations backend otherwise."
+                )
+    return _PIXEL_AFFINE_PADDING_MODES[border_mode]
+
+
+def _make_pixel_affine(params: dict[str, Any]) -> PixelTranslatedAffine:
+    """Build a ``PixelTranslatedAffine`` from ``Affine`` aug_config params that set ``translate_px``.
+
+    Options that cannot change a whole-pixel shift are accepted and have no effect, as on Albumentations:
+    ``interpolation`` and ``mask_interpolation`` codes 0-4, ``keep_ratio``, ``balanced_scale``, ``rotate_method``, a
+    unit ``scale`` or zero ``shear`` (scalar, pair or per-axis mapping), and ``fill``/``fill_mask`` with a replicate
+    border.
+
+    Args:
+        params: The ``Affine`` aug_config params; ``translate_px`` must be set.
+
+    Returns:
+        A transform that shifts images, boxes and masks by whole pixels sampled from the configured bounds.
+
+    Raises:
+        ValueError: If a deprecated Albumentations 1.x alias ``cval``, ``cval_mask`` or ``mode`` is set (the message
+            names ``fill``, ``fill_mask`` or ``border_mode``); if ``rotate`` or ``shear`` is not fixed at ``0`` or
+            ``scale`` is not fixed at ``1``, where a per-axis mapping's missing axis counts as ``1`` as on
+            Albumentations; if ``fit_output`` is true; if ``interpolation`` or ``mask_interpolation`` is not an OpenCV
+            code 0-4; if ``border_mode`` is neither constant (``0``) nor replicate (``1``), or a constant border has a
+            nonzero ``fill`` or ``fill_mask``; or if ``translate_px`` has keys other than ``x``/``y``, an axis that is
+            neither an offset nor a two-element range, a boolean or fractional offset, a reversed range, or a bound
+            outside the signed 64-bit range.
+    """
+    from rfdetr.datasets._kornia_pixel_affine import PixelTranslatedAffine
+
+    for alias, replacement in _ALBUMENTATIONS_1X_AFFINE_ALIASES.items():
+        if params.get(alias) is not None:
+            raise ValueError(
+                "Kornia Affine translate_px does not accept the deprecated Albumentations 1.x alias "
+                f"{alias}={params[alias]!r}; use {replacement} instead."
+            )
+    _require_pure_pixel_translation(params)
+    if params.get("fit_output", False):
+        raise ValueError(f"Kornia Affine translate_px does not support fit_output={params['fit_output']!r}.")
+    for name in ("interpolation", "mask_interpolation"):
+        if params.get(name, 0) not in _OPENCV_INTERPOLATION_CODES:
+            raise ValueError(
+                f"Kornia Affine translate_px accepts only the OpenCV interpolation codes 0-4 for {name}; "
+                f"got {name}={params[name]!r}."
+            )
+    padding_mode = _pixel_affine_padding_mode(params)
+    return PixelTranslatedAffine(
+        _pixel_translation_bounds(params["translate_px"]),
+        p=params.get("p", 0.5),
+        padding_mode=padding_mode,
+    )
+
+
+def _make_affine(params: dict[str, Any]) -> Any:
+    """Build a Kornia affine transform from ``Affine`` aug_config params.
+
+    With ``translate_px`` set, the params go to :func:`_make_pixel_affine`, which applies whole-pixel shifts only and
+    refuses every other geometry. Otherwise: Albumentations ``translate_percent`` accepts a scalar or a ``(min, max)``
+    signed range. Kornia ``translate`` is a non-negative per-axis max fraction ``(tx, ty)`` where translation is sampled
+    from ``[-tx, tx]``. The conversion takes ``max(|min|, |max|)`` for each axis. A scalar cannot preserve
+    Albumentations' fixed positive translation, so this builder warns before approximating it with symmetric signed
+    sampling. Albumentations ``scale`` also accepts a scalar, while Kornia requires a range, so scalars become
+    ``(v, v)``.
+
+    Args:
+        params: The ``Affine`` aug_config params.
+
+    Returns:
+        A ``K.RandomAffine``; for ``translate_px``, its ``PixelTranslatedAffine`` subclass.
+
+    Raises:
+        ValueError: If both ``translate_px`` and ``translate_percent`` are set, for any ``translate_px`` refusal listed
+            in :func:`_make_pixel_affine`, or if a scalar ``scale`` normalization receives a malformed range.
+    """
+    from kornia.augmentation import RandomAffine
+
+    translate_px = params.get("translate_px")
+    translate_percent = params.get("translate_percent")
+    if translate_px is not None and translate_percent is not None:
+        raise ValueError("Affine accepts either translate_px or translate_percent, not both.")
+
+    if translate_px is not None:
+        return _make_pixel_affine(params)
+
+    scale = params.get("scale")
+    if isinstance(scale, (int, float)) and not isinstance(scale, bool):
+        scale = _as_range(scale)
+
+    if isinstance(translate_percent, (int, float)) and not isinstance(translate_percent, bool):
+        logger.warning(
+            "GPU augmentation (Kornia) Affine scalar translate_percent=%s samples signed translations on both axes; "
+            "CPU augmentation (albumentations) applies a fixed positive translation, so this is a different "
+            "distribution. Use the albumentations backend when the exact distribution matters.",
+            translate_percent,
+        )
+        translate_percent = _as_symmetric_range(translate_percent)
+    if isinstance(translate_percent, (list, tuple)) and len(translate_percent) == 2:
+        magnitude = max(abs(translate_percent[0]), abs(translate_percent[1]))
+        translate: float | tuple[float, float] | list[float] | None = (magnitude, magnitude)
+    else:
+        translate = translate_percent
+
+    return RandomAffine(
+        degrees=params.get("rotate", (-15, 15)),
+        translate=translate,
+        scale=scale,
+        shear=params.get("shear"),
+        p=params.get("p", 0.5),
+    )
+
+
+#: Albumentations ``ShiftScaleRotate`` options with no ``K.RandomAffine`` equivalent.
+_SHIFT_SCALE_ROTATE_IGNORED_KEYS = (
+    "interpolation",
+    "border_mode",
+    "mask_interpolation",
+    "fill",
+    "fill_mask",
+    "rotate_method",
+)
+
+
+def _as_symmetric_range(value: Any) -> tuple[float, float]:
+    """Normalise an Albumentations ``*_limit`` value to a ``(min, max)`` pair.
+
+    These parameters expand a scalar ``v`` symmetrically to ``(-v, v)`` rather than to the degenerate ``(v, v)``
+    :func:`_as_range` produces, so they need their own normalisation.
+    """
+    if isinstance(value, (list, tuple)):
+        return _as_range(value)
+    return (-float(value), float(value))
+
+
+def _make_shift_scale_rotate(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomAffine`` from aug_config ``ShiftScaleRotate`` params.
+
+    Albumentations itself calls this "a special case of Affine transform" and deprecates it in favour of ``Affine``,
+    which this backend already supports. It is mapped anyway because the CPU path still accepts the name, so a config
+    using it trains on a CPU box and raises on a GPU box; new configs should prefer ``Affine``.
+
+    The three limits do **not** pass through to :func:`_make_affine`'s parameters unchanged, which is the whole reason
+    this needs its own builder rather than an alias:
+
+    - ``scale_limit`` is a delta biased by 1, not an absolute multiplier. Albumentations samples from
+      ``(1 + low, 1 + high)``, so the documented default ``(-0.1, 0.1)`` means a scale between ``0.9`` and ``1.1``.
+      Kornia's ``scale`` is the absolute multiplier range, so the pivot is applied here. Forwarding the raw value
+      would ask Kornia to scale the image to between a tenth of its size and nothing at all. This is the same
+      1.0-pivot that :func:`_make_sharpen` applies to ``alpha``.
+    - ``shift_limit`` is a signed fraction range, while Kornia's ``translate`` is a non-negative per-axis maximum
+      sampled symmetrically, so it is converted the same way :func:`_make_affine` converts ``translate_percent``.
+      ``shift_limit_x`` and ``shift_limit_y`` override it per axis, with ``None`` preserving the shared limit as it
+      does on the Albumentations backend. Kornia cannot represent an asymmetric shift interval, so this builder uses
+      the greatest absolute bound and logs that distributional approximation.
+    - all three accept a scalar as a symmetric range, unlike the ``(v, v)`` reading :func:`_as_range` gives.
+    """
+    from kornia.augmentation import RandomAffine
+
+    ignored = [k for k in _SHIFT_SCALE_ROTATE_IGNORED_KEYS if k in params]
+    if ignored:
+        logger.warning(
+            "GPU augmentation (Kornia) ShiftScaleRotate ignores %s "
+            "(Kornia's RandomAffine exposes only the geometric parameters). "
+            "CPU augmentation (albumentations) honors them.",
+            ", ".join(repr(k) for k in ignored),
+        )
+
+    shift = _as_symmetric_range(params.get("shift_limit", (-0.0625, 0.0625)))
+    shift_x_value = params.get("shift_limit_x")
+    shift_y_value = params.get("shift_limit_y")
+    shift_x = _as_symmetric_range(shift_x_value) if shift_x_value is not None else shift
+    shift_y = _as_symmetric_range(shift_y_value) if shift_y_value is not None else shift
+    configured_limits = (
+        ("shift_limit", shift, "shift_limit" in params),
+        ("shift_limit_x", shift_x, shift_x_value is not None),
+        ("shift_limit_y", shift_y, shift_y_value is not None),
+    )
+    asymmetric_limits = [
+        name for name, bounds, is_configured in configured_limits if is_configured and bounds[0] != -bounds[1]
+    ]
+    if asymmetric_limits:
+        logger.warning(
+            "GPU augmentation (Kornia) ShiftScaleRotate approximates asymmetric %s with a symmetric range using "
+            "the greatest absolute limit. CPU augmentation (Albumentations) preserves the requested distribution.",
+            ", ".join(repr(name) for name in asymmetric_limits),
+        )
+    translate = (
+        max(abs(shift_x[0]), abs(shift_x[1])),
+        max(abs(shift_y[0]), abs(shift_y[1])),
+    )
+
+    scale_low, scale_high = _as_symmetric_range(params.get("scale_limit", (-0.1, 0.1)))
+
+    return RandomAffine(
+        degrees=_as_symmetric_range(params.get("rotate_limit", (-45, 45))),
+        translate=translate,
+        scale=(1.0 + scale_low, 1.0 + scale_high),
+        p=params.get("p", 0.5),
+    )
+
+
+def _make_color_jitter(params: dict[str, Any]) -> Any:
+    """Build a ``K.ColorJiggle`` from aug_config ``ColorJitter`` params.
+
+    Note: Kornia >=0.7 uses ``ColorJiggle``; the ``ColorJitter`` alias was
+    added in later versions.  We use ``ColorJiggle`` for broad compatibility.
+    """
+    from kornia.augmentation import ColorJiggle
+
+    return ColorJiggle(
+        brightness=params.get("brightness", 0.0),
+        contrast=params.get("contrast", 0.0),
+        saturation=params.get("saturation", 0.0),
+        hue=params.get("hue", 0.0),
+        p=params.get("p", 0.5),
+    )
+
+
+def _make_to_gray(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomGrayscale`` from aug_config ``ToGray`` params.
+
+    Matches Albumentations' ``ToGray``: the image is converted to grayscale and kept at three channels, so it stays a
+    drop-in for an RGB pipeline. Only ``p`` is honored on this (Kornia) backend: ``method`` and ``num_output_channels``
+    are accepted by the CPU (albumentations) path but have no Kornia equivalent, so they are silently ignored here.
+    """
+    from kornia.augmentation import RandomGrayscale
+
+    if "method" in params or "num_output_channels" in params:
+        logger.warning(
+            "GPU augmentation (Kornia) ToGray ignores 'method' and 'num_output_channels' "
+            "(Kornia's RandomGrayscale always uses BT.601 weights and returns 3 channels). "
+            "CPU augmentation (albumentations) honors both."
+        )
+    return RandomGrayscale(p=params.get("p", 0.5))
+
+
+def _make_random_brightness_contrast(params: dict[str, Any]) -> Any:
+    """Build a ``K.ColorJiggle`` from ``RandomBrightnessContrast`` params."""
+    from kornia.augmentation import ColorJiggle
+
+    return ColorJiggle(
+        brightness=params.get("brightness_limit", 0.2),
+        contrast=params.get("contrast_limit", 0.2),
+        p=params.get("p", 0.5),
+    )
+
+
+def _make_gaussian_blur(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomGaussianBlur`` from aug_config params.
+
+    Both ``blur_limit`` and ``sigma`` accept a scalar or a ``(min, max)`` pair, since Albumentations accepts either and
+    a config written for the CPU path should not fail here, but a pair resolves asymmetrically: ``blur_limit`` takes the
+    pair's upper bound (Kornia uses a single kernel size), rounded up to an odd integer, while ``sigma`` is passed
+    through as a real ``(min, max)`` range. A non-degenerate ``blur_limit`` pair therefore collapses to fixed maximum
+    blur and logs a warning.
+    """
+    from kornia.augmentation import RandomGaussianBlur
+
+    # Shared with Blur: a (min, max) pair collapses to its upper bound, forced odd and >= 3.
+    blur_limit = _as_odd_kernel(params.get("blur_limit", 3), "GaussianBlur")
+    if "sigma" in params:
+        sigma_range = params["sigma"]
+    else:
+        # The supported Albumentations range has version-dependent defaults. Read the installed CPU transform so a
+        # shared config stays aligned whenever both optional augmentation backends are available; otherwise retain
+        # Kornia's original default for GPU-only installations. AUG_INDUSTRIAL reaches this branch.
+        if AugmentationBackend.ALBU._is_available():
+            import albumentations
+
+            sigma_range = albumentations.GaussianBlur().sigma_limit
+        else:
+            sigma_range = (0.1, 2.0)
+    blur_sigma = _as_range(sigma_range)
+    return RandomGaussianBlur(
+        kernel_size=(blur_limit, blur_limit),
+        sigma=blur_sigma,
+        p=params.get("p", 0.5),
+    )
+
+
+def _make_gauss_noise(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomGaussianNoise`` from aug_config params.
+
+    Kornia takes a single ``std`` value, so the upper bound of ``std_range`` is used as a fixed standard deviation. When
+    the configured range is non-degenerate this diverges from the CPU (albumentations) path, which samples a fresh std
+    per call; a warning is emitted at build time so the drift is visible.
+    """
+    from kornia.augmentation import RandomGaussianNoise
+
+    # Default to the CPU (albumentations) GaussNoise std_range default, (0.2, 0.44), on the 0-1 image
+    # scale both backends use. Kornia still fixes its std at the upper bound, while the CPU path samples
+    # the range; the warning below makes that unavoidable distribution difference visible.
+    std_range = _as_range(params.get("std_range", (0.2, 0.44)))
+    if std_range[0] != std_range[1]:
+        logger.warning(
+            "GPU augmentation (Kornia) uses fixed std=%.3f for GaussianNoise "
+            "(Kornia does not support per-sample std ranges). "
+            "CPU augmentation (albumentations) samples from [%.3f, %.3f].",
+            std_range[1],
+            std_range[0],
+            std_range[1],
+        )
+    return RandomGaussianNoise(
+        std=std_range[1],
+        p=params.get("p", 0.5),
+    )
+
+
+def _make_blur(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomBoxBlur`` from aug_config ``Blur`` params.
+
+    Albumentations' ``Blur`` is a box (average) blur, which is what ``RandomBoxBlur`` applies, so this is a direct
+    mapping. ``blur_limit`` resolves the same way as for ``GaussianBlur``: a non-degenerate pair collapses to its upper
+    bound because Kornia takes a single kernel size. Unlike ``GaussianBlur``, Albumentations' own default here is a
+    range rather than a scalar, so the default collapse is expected rather than a misconfiguration and is reported at
+    ``DEBUG``; a range the user set explicitly still warns.
+    """
+    from kornia.augmentation import RandomBoxBlur
+
+    kernel = _as_odd_kernel(
+        params.get("blur_limit", _ALBUMENTATIONS_BLUR_LIMIT_DEFAULT),
+        "Blur",
+        default_pair=_ALBUMENTATIONS_BLUR_LIMIT_DEFAULT,
+    )
+    return RandomBoxBlur(kernel_size=(kernel, kernel), p=params.get("p", 0.5))
+
+
+def _make_sharpen(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomSharpness`` from aug_config ``Sharpen`` params.
+
+    The two libraries use different origins for the same effect, so ``alpha`` is shifted rather than passed through.
+    Albumentations' ``alpha`` is the visibility of the sharpened image: ``0`` leaves the image unchanged and ``1``
+    shows the fully sharpened version, so it never blurs. Kornia's ``sharpness`` factor is pivoted at ``1.0`` (the
+    PIL ``ImageEnhance.Sharpness`` convention): it blends from a smoothed copy at ``0`` through the untouched image
+    at ``1.0`` and sharpens only above ``1.0``. Passing ``alpha`` through unchanged would therefore blur the image
+    for every value below ``1``, so the resolved range is shifted with ``sharpness = 1.0 + alpha``, which keeps the
+    Albumentations no-op at ``alpha = 0`` mapped to Kornia's no-op at ``sharpness = 1.0``.
+
+    ``lightness`` and ``method`` have no Kornia equivalent and are ignored here; the CPU (albumentations) path honors
+    both.
+    """
+    from kornia.augmentation import RandomSharpness
+
+    if "lightness" in params or "method" in params:
+        logger.warning(
+            "GPU augmentation (Kornia) Sharpen ignores 'lightness' and 'method' "
+            "(Kornia's RandomSharpness exposes only a sharpness factor). "
+            "CPU augmentation (albumentations) honors both."
+        )
+    alpha_min, alpha_max = _as_range(params.get("alpha", (0.2, 0.5)))
+    return RandomSharpness(
+        sharpness=(1.0 + alpha_min, 1.0 + alpha_max),
+        p=params.get("p", 0.5),
+    )
+
+
+def _make_equalize(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomEqualize`` from aug_config ``Equalize`` params.
+
+    Only ``p`` is honored. ``mode``, ``by_channels`` and ``mask`` are accepted by the CPU (albumentations) path but
+    have no Kornia equivalent: ``RandomEqualize`` always equalizes every channel and takes no mask.
+    """
+    from kornia.augmentation import RandomEqualize
+
+    if any(key in params for key in ("mode", "by_channels", "mask")):
+        logger.warning(
+            "GPU augmentation (Kornia) Equalize ignores 'mode', 'by_channels' and 'mask' "
+            "(Kornia's RandomEqualize always equalizes all channels and takes no mask). "
+            "CPU augmentation (albumentations) honors them."
+        )
+    return RandomEqualize(p=params.get("p", 0.5))
+
+
+def _as_clahe_clip_limit(value: Any) -> tuple[float, float]:
+    """Normalise ``CLAHE``'s ``clip_limit`` the way Albumentations does.
+
+    Albumentations applies ``to_tuple(clip_limit, low=1)``, so a scalar ``v`` means the range ``(1, v)``. This differs
+    from :func:`_as_range`, which expands a scalar to the degenerate ``(v, v)``; using that here would change the
+    distribution rather than the units.
+
+    Args:
+        value: A scalar, or a 2-element ``(min, max)`` pair.
+
+    Returns:
+        The ``(min, max)`` pair Albumentations would sample from for the same config.
+
+    Raises:
+        ValueError: If *value* is a sequence of any length other than two. Albumentations validates ``clip_limit`` as
+            either a float or an exact 2-tuple and rejects ``[4.0]``, so accepting it here (as a scalar, via
+            :func:`_as_range`) would make the same config train on the GPU backend and fail on the CPU one. The point
+            of this helper is that the two agree.
+
+    Examples:
+        >>> _as_clahe_clip_limit(4.0)
+        (1.0, 4.0)
+        >>> _as_clahe_clip_limit((2.0, 6.0))
+        (2.0, 6.0)
+    """
+    if isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise ValueError(
+                "CLAHE clip_limit must be a scalar or a 2-element (min, max) pair; "
+                f"got a {len(value)}-element sequence: {value!r}. Albumentations rejects this too, so the CPU "
+                "(albumentations) backend would fail on the same config."
+            )
+        return (float(value[0]), float(value[1]))
+    # A scalar means the range (1, v), which is what `to_tuple(v, low=1)` produces.
+    return (1.0, float(value))
+
+
+def _make_clahe(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomClahe`` from aug_config ``CLAHE`` params.
+
+    ``tile_grid_size`` becomes ``grid_size`` directly. ``clip_limit`` needs care: Albumentations reads a scalar ``v`` as
+    the range ``(1, v)`` and samples from it, not as the fixed value ``v``. Passing it through :func:`_as_range` would
+    produce the degenerate ``(v, v)`` and pin the GPU path to maximum contrast enhancement on every sample while the CPU
+    path varied it — and since ``4.0`` is the default on both sides, that divergence applied to the default
+    configuration rather than only to unusual ones. A pair is already a range and is used as given.
+    """
+    import kornia.augmentation as kornia_augmentation
+
+    random_clahe = cast(Any, kornia_augmentation).RandomClahe
+    grid = params.get("tile_grid_size", (8, 8))
+    return random_clahe(
+        clip_limit=_as_clahe_clip_limit(params.get("clip_limit", 4.0)),
+        grid_size=(int(grid[0]), int(grid[1])),
+        p=params.get("p", 0.5),
+    )
+
+
+#: Albumentations ``Perspective`` options with no ``K.RandomPerspective`` equivalent.
+_PERSPECTIVE_IGNORED_KEYS = (
+    "fit_output",
+    "interpolation",
+    "mask_interpolation",
+    "border_mode",
+    "fill",
+    "fill_mask",
+)
+
+
+def _make_perspective(params: dict[str, Any]) -> Any:
+    """Build a ``K.RandomPerspective`` from aug_config ``Perspective`` params.
+
+    Both libraries displace the corners by a fraction of the image side, but they do not sample that fraction the same
+    way, so this is an approximation rather than a parameter rename. Albumentations treats ``scale`` as the standard
+    deviation of a normal and takes ``abs(N(0, sigma))`` per corner (normalizing a scalar ``v`` to ``(0, v)``), so small
+    displacements dominate and large ones are possible but rare. Kornia draws uniformly from ``[0, distortion_scale]``.
+    Passing the upper bound of ``scale`` as ``distortion_scale`` keeps the worst-case distortion roughly aligned while
+    making the typical distortion noticeably stronger on the GPU path; there is no setting that makes the two
+    distributions equal. The divergence is logged so a run does not silently change character when it moves onto the
+    GPU.
+
+    Other Albumentations ``Perspective`` options (``fit_output``, ``interpolation``, ``mask_interpolation``,
+    ``border_mode``, ``fill``, ``fill_mask``) have no ``RandomPerspective`` equivalent and are ignored with a warning
+    when set to a non-default value.
+
+    ``keep_size`` is not accepted. Albumentations defaults it to ``True`` (the output keeps the input's height and
+    width) and Kornia's ``RandomPerspective`` always behaves that way, so the default maps cleanly; ``keep_size=False``
+    would change the output resolution, which this pipeline cannot express (see the note in
+    :func:`build_kornia_pipeline` about size-preserving transforms), so it is refused rather than silently ignored.
+    """
+    from kornia.augmentation import RandomPerspective
+
+    if params.get("keep_size") is False:
+        raise ValueError(
+            "Perspective(keep_size=False) is not supported on the Kornia GPU backend: it changes the output "
+            "resolution, but the GPU augmentation path requires a fixed batch height and width. Use "
+            "keep_size=True (the Albumentations default), or run this augmentation on the CPU "
+            "(albumentations) backend."
+        )
+
+    ignored = [k for k in _PERSPECTIVE_IGNORED_KEYS if k in params]
+    if ignored:
+        logger.warning(
+            "GPU augmentation (Kornia) Perspective ignores %s "
+            "(Kornia's RandomPerspective exposes only distortion_scale and p). "
+            "CPU augmentation (albumentations) honors them.",
+            ", ".join(repr(k) for k in ignored),
+        )
+
+    # Albumentations reads a scalar ``scale`` as ``(0, v)`` rather than ``(v, v)``, so it is normalized here
+    # instead of going through ``_as_range``; otherwise the reported CPU-side range would be wrong.
+    raw_scale = params.get("scale", (0.05, 0.1))
+    scale = (0.0, float(raw_scale)) if isinstance(raw_scale, (int, float)) else _as_range(raw_scale)
+    logger.warning(
+        "GPU augmentation (Kornia) Perspective uses distortion_scale=%.3f sampled uniformly from "
+        "[0, %.3f]. CPU augmentation (albumentations) samples each corner offset from abs(N(0, sigma)) "
+        "over sigma in [%.3f, %.3f], so the GPU path distorts more on a typical sample. "
+        "Use the albumentations backend if the exact distribution matters.",
+        scale[1],
+        scale[1],
+        scale[0],
+        scale[1],
+    )
+    return RandomPerspective(
+        distortion_scale=scale[1],
+        p=params.get("p", 0.5),
+    )
+
+
+_REGISTRY: dict[str, Callable[[dict[str, Any]], Any]] = {
+    "HorizontalFlip": _make_horizontal_flip,
+    "VerticalFlip": _make_vertical_flip,
+    "Rotate": _make_rotate,
+    "Affine": _make_affine,
+    "ShiftScaleRotate": _make_shift_scale_rotate,
+    "ColorJitter": _make_color_jitter,
+    "ToGray": _make_to_gray,
+    "RandomBrightnessContrast": _make_random_brightness_contrast,
+    "GaussianBlur": _make_gaussian_blur,
+    "GaussNoise": _make_gauss_noise,
+    "Blur": _make_blur,
+    "Sharpen": _make_sharpen,
+    "Equalize": _make_equalize,
+    "CLAHE": _make_clahe,
+    "Perspective": _make_perspective,
+}
+
+
+# ---------------------------------------------------------------------------
+# Pipeline builders
+# ---------------------------------------------------------------------------
+
+
+def build_kornia_pipeline(
+    aug_config: dict[str, dict[str, Any]],
+    resolution: int,
+    with_masks: bool = False,
+    include_keypoints: bool = False,
+    with_keypoints: bool = False,
+    keypoint_flip_pairs: list[int] | None = None,
+) -> Any:
+    """Build a Kornia ``AugmentationSequential`` from an aug_config dict.
+
+    Each key in *aug_config* is looked up in ``_REGISTRY`` and instantiated with the corresponding parameter dict.
+    Unknown keys raise ``ValueError``.
+
+    Args:
+        aug_config: Mapping of augmentation names to parameter dicts, identical
+            to the format accepted by the Albumentations path (e.g. ``{"HorizontalFlip": {"p": 0.5}}``).
+        resolution: Target image resolution in pixels (currently reserved for
+            future resolution-aware augmentations).
+        with_masks: When ``True``, include ``"mask"`` in ``data_keys`` so
+            auxiliary masks are augmented in sync with images and boxes. The training DataModule always enables this
+            to transport its padding mask; segmentation batches concatenate instance-mask channels before the final
+            padding channel. The pipeline then expects three inputs ``(img, boxes, masks)`` and returns three outputs.
+            Defaults to ``False`` for direct detection-only callers.
+        include_keypoints: Preserve the existing flip-safety behavior: drop
+            horizontal flips when no flip pairs are provided.
+        with_keypoints: When ``True``, add ``"keypoints"`` to ``data_keys``. The pipeline then takes one extra
+            trailing input, keypoint xy coordinates ``[B, N, 2]`` (as built by :func:`collate_keypoints`), and
+            returns one extra trailing output: ``(img, boxes, keypoints)``, or ``(img, boxes, masks, keypoints)``
+            with *with_masks*. This is separate from ``include_keypoints`` so existing direct
+            callers using that flag keep the same input arity.
+        keypoint_flip_pairs: Flat left/right joint pairs. A nonempty list keeps
+            horizontal flips; the caller swaps joint slots after each flip.
+
+    Returns:
+        A ``kornia.augmentation.AugmentationSequential`` instance.
+
+    Raises:
+        ValueError: If *aug_config* contains an unsupported augmentation key; if *keypoint_flip_pairs* has an odd
+            number of entries while *include_keypoints* or *with_keypoints* is set; or if *keypoint_flip_pairs* is
+            non-empty while *with_keypoints* is ``False``.
+
+    Examples:
+        >>> from rfdetr.datasets.aug_configs import AUG_CONSERVATIVE
+        >>> pipeline = build_kornia_pipeline(AUG_CONSERVATIVE, resolution=560)
+        >>> pipeline_seg = build_kornia_pipeline(AUG_CONSERVATIVE, resolution=560, with_masks=True)
+    """
+    _require_kornia()
+    from kornia.augmentation import AugmentationSequential
+
+    if (include_keypoints or with_keypoints) and keypoint_flip_pairs and len(keypoint_flip_pairs) % 2:
+        raise ValueError("keypoint_flip_pairs must contain an even number of joint indices")
+    if keypoint_flip_pairs and not with_keypoints:
+        # Without the keypoints data key the caller never receives augmented joints to relabel, so the pairs would
+        # only keep horizontal flips enabled while silently doing nothing.
+        raise ValueError("keypoint_flip_pairs requires with_keypoints=True so flipped joints can be relabeled")
+
+    filtered_aug_config = filter_keypoint_hflip_augmentations(
+        aug_config,
+        include_keypoints=(include_keypoints or with_keypoints) and not keypoint_flip_pairs,
+        warn=logger.warning,
+    )
+    assert isinstance(filtered_aug_config, dict)
+
+    transforms: list[Any] = []
+    for name, params in filtered_aug_config.items():
+        factory = _REGISTRY.get(name)
+        if factory is None:
+            raise ValueError(
+                f"Unknown augmentation key {name!r} for Kornia GPU backend. Supported keys: {sorted(_REGISTRY)}."
+            )
+        transforms.append(factory(params))
+
+    data_keys = ["input", "bbox_xyxy", "mask"] if with_masks else ["input", "bbox_xyxy"]
+    if with_keypoints:
+        data_keys.append("keypoints")
+    return AugmentationSequential(
+        *transforms,
+        data_keys=data_keys,
+    )
+
+
+def build_normalize(
+    mean: tuple[float, ...] = IMAGENET_MEAN,
+    std: tuple[float, ...] = IMAGENET_STD,
+) -> Any:
+    """Build a Kornia ``Normalize`` transform for GPU-side normalization.
+
+    Args:
+        mean: Per-channel mean values.  Defaults to ImageNet statistics.
+        std: Per-channel standard deviation values.  Defaults to ImageNet
+            statistics.
+
+    Returns:
+        A ``kornia.augmentation.Normalize`` instance.
+    """
+    _require_kornia()
+    from kornia.augmentation import Normalize
+
+    return Normalize(
+        mean=mean,
+        std=std,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Bounding-box utilities
+# ---------------------------------------------------------------------------
+
+
+def collate_boxes(
+    targets: list[dict[str, Any]],
+    device: torch.device,
+) -> tuple[Tensor, Tensor]:
+    """Pack variable-length xyxy boxes into a padded tensor and valid mask.
+
+    Kornia ``AugmentationSequential`` expects boxes as ``[B, N_max, 4]``. This function zero-pads each image's boxes to
+    the maximum count in the batch and returns a boolean mask indicating which entries are real.
+
+    Args:
+        targets: List of target dicts (one per image), each containing a
+            ``"boxes"`` key with an ``[N_i, 4]`` tensor in xyxy format.
+        device: Device on which to allocate the output tensors.
+
+    Returns:
+        Tuple of:
+            - ``boxes_padded`` — ``[B, N_max, 4]`` float tensor (zero-padded).
+            - ``valid_mask``   — ``[B, N_max]`` bool tensor (``True`` = real box).
+
+        When ``B == 0`` or all images have zero boxes, both tensors have ``N_max == 0``.
+    """
+    if len(targets) == 0:
+        return (
+            torch.zeros(0, 0, 4, device=device),
+            torch.zeros(0, 0, dtype=torch.bool, device=device),
+        )
+
+    box_counts = [t["boxes"].shape[0] for t in targets]
+    n_max = max(box_counts) if box_counts else 0
+    batch_size = len(targets)
+
+    if n_max == 0:
+        return (
+            torch.zeros(batch_size, 0, 4, device=device),
+            torch.zeros(batch_size, 0, dtype=torch.bool, device=device),
+        )
+
+    boxes_padded = torch.zeros(batch_size, n_max, 4, device=device)
+    valid_mask = torch.zeros(batch_size, n_max, dtype=torch.bool, device=device)
+
+    for i, t in enumerate(targets):
+        n = t["boxes"].shape[0]
+        if n > 0:
+            boxes_padded[i, :n] = t["boxes"]
+            valid_mask[i, :n] = True
+
+    return boxes_padded, valid_mask
+
+
+def collate_masks(
+    targets: list[dict[str, Any]],
+    device: torch.device,
+    n_max: int,
+    image_height: int,
+    image_width: int,
+) -> Tensor:
+    """Pack variable-length instance masks into a zero-padded ``[B, N_max, H, W]`` tensor.
+
+    Kornia ``AugmentationSequential`` expects masks as ``[B, N_max, H, W]`` when ``data_keys`` includes ``"mask"``.
+    This function zero-pads each image's masks to *n_max* channels (matching the padding used by :func:`collate_boxes`)
+    and converts boolean masks to ``float32`` for Kornia compatibility.
+
+    Args:
+        targets: List of target dicts (one per image).  Each dict may optionally
+            contain a ``"masks"`` key with an ``[N_i, H, W]`` boolean tensor. Dicts without the key are treated as
+            having zero instances.
+        device: Device on which to allocate the output tensor.
+        n_max: Maximum instance count across the batch — must equal
+            ``collate_boxes(targets, device)[1].shape[1]`` to keep box/mask indices in sync.
+        image_height: Spatial height ``H`` of each mask (pixels).
+        image_width: Spatial width ``W`` of each mask (pixels).
+
+    Returns:
+        Float32 tensor of shape ``[B, N_max, H, W]``, zero-padded where ``N_i < N_max``.  Boolean input masks are cast
+        to ``float32`` (``True → 1.0``, ``False → 0.0``).
+
+    Examples:
+        >>> import torch
+        >>> targets = [{"masks": torch.ones(2, 8, 8, dtype=torch.bool)}]
+        >>> out = collate_masks(targets, torch.device("cpu"), n_max=2, image_height=8, image_width=8)
+        >>> out.shape
+        torch.Size([1, 2, 8, 8])
+        >>> out.dtype
+        torch.float32
+    """
+    batch_size = len(targets)
+    masks_padded = torch.zeros(batch_size, n_max, image_height, image_width, dtype=torch.float32, device=device)
+    for i, t in enumerate(targets):
+        if "masks" not in t or n_max == 0:
+            continue
+        masks_i = t["masks"].to(dtype=torch.float32, device=device)  # [N_i, H, W]
+        n = min(masks_i.shape[0], n_max)
+        if n > 0:
+            masks_padded[i, :n] = masks_i[:n]
+    return masks_padded
+
+
+def collate_keypoints(targets: list[dict[str, Any]], device: torch.device, n_max: int) -> tuple[Tensor, Tensor]:
+    """Pad keypoints to the box count and retain visibility separately.
+
+    Kornia transforms only xy coordinates, so visibility travels outside the pipeline. Coordinates are copied
+    unchanged, in the same frame as the input keypoints; this function performs no frame shift. Kornia's pixel-index
+    convention flips ``x`` to ``width - 1 - x`` while RF-DETR's continuous coordinates flip to ``width - x``, so a
+    caller that needs the latter shifts points (and boxes) by ``-0.5`` before the pipeline and ``+0.5`` after it, as
+    ``RFDETRDataModule.on_after_batch_transfer`` does.
+
+    Args:
+        targets: Per-image targets with ``[N, K, 3]`` keypoints.
+        device: Device holding the batch.
+        n_max: Padded box count from :func:`collate_boxes`.
+
+    Returns:
+        Kornia xy points ``[B, n_max * K, 2]`` in the input coordinate frame and visibility
+        ``[B, n_max, K]``. Both are float32; rows past an image's own instance count stay zero, and
+        :func:`unpack_boxes` later zeroes joints that end up outside the image or invisible.
+
+    Raises:
+        ValueError: If a target's keypoints are not shaped ``[N, K, 3]`` with ``N <= n_max`` and the joint count
+            ``K`` of the first target.
+
+    Examples:
+        >>> points, visibility = collate_keypoints(
+        ...     [{"keypoints": torch.tensor([[[3., 4., 2.]]])}], torch.device("cpu"), 1
+        ... )
+        >>> points.tolist(), visibility.tolist()
+        ([[[3.0, 4.0]]], [[[2.0]]])
+    """
+    if not targets:
+        return torch.zeros(0, 0, 2, device=device), torch.zeros(0, 0, 0, device=device)
+    k = targets[0]["keypoints"].shape[1]
+    points = torch.zeros(len(targets), n_max, k, 2, dtype=torch.float32, device=device)
+    visibility = torch.zeros(len(targets), n_max, k, dtype=torch.float32, device=device)
+    for i, target in enumerate(targets):
+        keypoints = target["keypoints"]
+        if keypoints.ndim != 3 or keypoints.shape[1:] != (k, 3) or keypoints.shape[0] > n_max:
+            raise ValueError(f"Expected keypoints with shape (N <= {n_max}, {k}, 3), got {tuple(keypoints.shape)}")
+        n = keypoints.shape[0]
+        points[i, :n] = keypoints[..., :2].to(device=device, dtype=torch.float32)
+        visibility[i, :n] = keypoints[..., 2].to(device=device, dtype=torch.float32)
+    return points.reshape(len(targets), n_max * k, 2), visibility
+
+
+def keypoint_horizontal_flip_mask(pipeline: Any, batch_size: int, device: torch.device) -> Tensor:
+    """Read per-image horizontal-flip draws from the completed Kornia pipeline.
+
+    Kornia exposes sampled parameters through ``_params`` after a forward pass;
+    the transform matrix alone cannot distinguish horizontal from vertical
+    reflection. This mirrors the CPU-backend convention: only horizontal flips relabel left/right joint slots, and
+    ``VerticalFlip`` is intentionally not relabeled.
+
+    Args:
+        pipeline: The just-executed AugmentationSequential.
+        batch_size: Number of images in the batch.
+        device: Device holding the batch.
+
+    Returns:
+        Boolean ``[B]`` tensor marking odd horizontal-flip parity.
+
+    Raises:
+        RuntimeError: If the pipeline contains a horizontal flip but exposed no horizontal-flip draws, so paired
+            joints cannot be relabeled safely.
+
+    Examples:
+        >>> pipeline = build_kornia_pipeline({"VerticalFlip": {"p": 1.0}}, 16, with_keypoints=True)
+        >>> keypoint_horizontal_flip_mask(pipeline, 2, torch.device("cpu")).tolist()
+        [False, False]
+    """
+    from kornia.augmentation import RandomHorizontalFlip
+
+    flipped = torch.zeros(batch_size, dtype=torch.bool, device=device)
+    found = False
+    for item in _sampled_param_items(pipeline):
+        if item.name.startswith("RandomHorizontalFlip_"):
+            found = True
+            flipped ^= item.data["batch_prob"].to(device=device, dtype=torch.bool)
+    has_horizontal_flip = any(isinstance(child, RandomHorizontalFlip) for child in pipeline.children())
+    if has_horizontal_flip and not found:
+        raise RuntimeError("Kornia did not expose horizontal-flip draws; cannot safely relabel paired keypoints")
+    return flipped
+
+
+def _sampled_param_items(pipeline: Any) -> list[Any]:
+    """Return the per-transform parameters Kornia sampled on the pipeline's last forward pass.
+
+    Kornia exposes them only through the private ``AugmentationSequential._params`` attribute, a list of
+    ``ParamItem`` entries named ``<TransformClass>_<index>``. Reading it here keeps that private-API dependency in one
+    place.
+
+    Args:
+        pipeline: A Kornia ``AugmentationSequential``.
+
+    Returns:
+        The sampled ``ParamItem`` entries; empty before the first forward pass.
+    """
+    return list(getattr(pipeline, "_params", None) or [])
+
+
+def unpack_boxes(
+    boxes_aug: Tensor,
+    valid: Tensor,
+    targets: list[dict[str, Any]],
+    image_height: int,
+    image_width: int,
+    masks_aug: Tensor | None = None,
+    keypoints_aug: Tensor | None = None,
+    keypoint_visibility: Tensor | None = None,
+    keypoint_flip_pairs: list[int] | None = None,
+    keypoint_flip_mask: Tensor | None = None,
+) -> list[dict[str, Any]]:
+    """Unpack augmented boxes, masks and keypoints, removing zero-area instances.
+
+    After Kornia augmentation the padded ``[B, N_max, 4]`` tensor is unpacked back into per-image target dicts.  Boxes
+    are clamped to ``[0, W] x [0, H]`` and any that collapse to zero area are removed along with their corresponding
+    ``labels``, ``area``, ``iscrowd``, and (if provided) ``masks`` entries.
+
+    Keypoint visibility is decided once, from the final coordinates after every augmentation op has run; it is not
+    tracked per op. A joint that one op moves outside the image and a later op moves back inside therefore keeps its
+    original visibility. This matches the default Albumentations CPU path, which also judges joints only on the
+    pipeline's final output.
+
+    Args:
+        boxes_aug: Augmented boxes tensor ``[B, N_max, 4]`` in xyxy format.
+        valid: Boolean mask ``[B, N_max]`` from :func:`collate_boxes`.
+        targets: Original target dicts; each dict is shallow-copied before
+            modification — the input list itself is not mutated.
+        image_height: Image height in pixels (for clamping).
+        image_width: Image width in pixels (for clamping).
+        masks_aug: Optional augmented masks tensor ``[B, N_max, H, W]``
+            (float32) from Kornia.  When provided, masks are filtered by the same ``keep`` mask as boxes, thresholded at
+            ``> 0.5`` to bool, and stored under ``"masks"`` in each output target dict.  When ``None``, any existing
+            ``"masks"`` entry in the target dict is preserved unchanged.
+        keypoints_aug: Optional augmented xy points ``[B, N_max * K, 2]`` in the same coordinate frame as
+            *boxes_aug*; this function performs no frame shift, so a caller that moved points into Kornia's
+            pixel-index frame must move them back before calling.
+        keypoint_visibility: Original visibility values ``[B, N_max, K]``.
+        keypoint_flip_pairs: Flat left/right index pairs for slot relabeling.
+        keypoint_flip_mask: Per-image horizontal-flip draws ``[B]``.
+
+    Returns:
+        A new list of target dicts with updated ``boxes``, ``labels``, ``area``, ``iscrowd``, and (when *masks_aug* is
+        given) ``masks`` entries. When *keypoints_aug* is given, each dict also gets ``keypoints`` ``[N_kept, K, 3]``
+        in the same coordinate frame as *keypoints_aug* (no frame shift is applied here): rows follow the same
+        ``keep`` mask as boxes, and a joint whose xy falls outside ``[0, W] x [0, H]`` or whose visibility is
+        ``<= 0`` is zeroed entirely (x, y and v). On images whose *keypoint_flip_mask* entry is set, joint slots are
+        then swapped per *keypoint_flip_pairs*.
+
+    Raises:
+        ValueError: If *keypoints_aug* is given without *keypoint_visibility*, or its batch and point dimensions
+            do not equal ``(B, N_max * K)`` for the padded box count and the joint count ``K`` of
+            *keypoint_visibility*.
+    """
+    if masks_aug is not None:
+        assert masks_aug.shape[:2] == valid.shape, (
+            f"masks_aug batch/n_max dims {tuple(masks_aug.shape[:2])} must match "
+            f"valid shape {tuple(valid.shape)}; ensure collate_masks is called with "
+            "n_max=valid.shape[1] from collate_boxes"
+        )
+    _check_keypoint_inputs(keypoints_aug, keypoint_visibility, valid)
+    flip_flags: list[bool] = []
+    flip_permutation: list[int] = []
+    if keypoint_flip_pairs and keypoint_flip_mask is not None and keypoint_visibility is not None:
+        # Read every per-image flip draw with one device sync, and none at all when no pairs are configured.
+        flip_flags = keypoint_flip_mask.tolist()
+        flip_permutation = keypoint_flip_permutation(keypoint_flip_pairs, keypoint_visibility.shape[2])
+    new_targets: list[dict[str, Any]] = []
+    for i, t in enumerate(targets):
+        t = t.copy()
+        n_orig = t["boxes"].shape[0]
+
+        if n_orig == 0 or valid.shape[1] == 0:
+            new_targets.append(t)
+            continue
+
+        # Extract valid boxes for this image
+        v = valid[i, :n_orig]
+        boxes_i = boxes_aug[i, :n_orig]
+
+        # Clamp to image boundaries
+        boxes_i = boxes_i.clone()
+        boxes_i[:, 0].clamp_(min=0, max=image_width)
+        boxes_i[:, 1].clamp_(min=0, max=image_height)
+        boxes_i[:, 2].clamp_(min=0, max=image_width)
+        boxes_i[:, 3].clamp_(min=0, max=image_height)
+
+        # Remove zero-area boxes (after clamping)
+        widths = boxes_i[:, 2] - boxes_i[:, 0]
+        heights = boxes_i[:, 3] - boxes_i[:, 1]
+        keep = v & (widths > 0) & (heights > 0)
+
+        t["boxes"] = boxes_i[keep]
+        if "labels" in t:
+            t["labels"] = t["labels"][keep]
+        if "area" in t:
+            # Recompute area from clamped boxes
+            kept_boxes = t["boxes"]
+            t["area"] = (kept_boxes[:, 2] - kept_boxes[:, 0]) * (kept_boxes[:, 3] - kept_boxes[:, 1])
+        if "iscrowd" in t:
+            t["iscrowd"] = t["iscrowd"][keep]
+        if masks_aug is not None:
+            masks_i = masks_aug[i, :n_orig]  # [N_orig, H, W]
+            t["masks"] = masks_i[keep] > _MASK_BINARIZE_THRESHOLD
+        if keypoints_aug is not None and keypoint_visibility is not None:
+            k = keypoint_visibility.shape[2]
+            t["keypoints"] = _unpack_image_keypoints(
+                keypoints_aug[i].reshape(valid.shape[1], k, 2)[:n_orig][keep],
+                keypoint_visibility[i, :n_orig][keep],
+                image_height,
+                image_width,
+                flip_permutation if flip_flags and flip_flags[i] else None,
+            )
+
+        new_targets.append(t)
+
+    return new_targets
+
+
+def _check_keypoint_inputs(keypoints_aug: Tensor | None, keypoint_visibility: Tensor | None, valid: Tensor) -> None:
+    """Check that augmented keypoints line up with the padded boxes and the visibility tensor.
+
+    Args:
+        keypoints_aug: Augmented xy points ``[B, N_max * K, 2]``, or ``None`` when keypoints are not transported.
+        keypoint_visibility: Visibility ``[B, N_max, K]`` from :func:`collate_keypoints`.
+        valid: Boolean mask ``[B, N_max]`` from :func:`collate_boxes`.
+
+    Raises:
+        ValueError: If *keypoints_aug* is given without *keypoint_visibility*, or its batch and point dimensions
+            do not equal ``(B, N_max * K)``.
+    """
+    if keypoints_aug is None:
+        return
+    if keypoint_visibility is None or keypoints_aug.shape[:2] != (
+        valid.shape[0],
+        valid.shape[1] * keypoint_visibility.shape[2],
+    ):
+        raise ValueError("keypoints_aug and keypoint_visibility must match the padded box and joint counts")
+
+
+def _unpack_image_keypoints(
+    xy: Tensor,
+    visibility: Tensor,
+    image_height: int,
+    image_width: int,
+    flip_permutation: list[int] | None,
+) -> Tensor:
+    """Rebuild one image's ``[N, K, 3]`` keypoints after augmentation.
+
+    Visibility is decided once, from the final coordinates only: a joint is zeroed entirely (x, y and v) when it lies
+    outside ``[0, W] x [0, H]`` or its visibility is ``<= 0``.
+
+    Args:
+        xy: Augmented joint coordinates ``[N, K, 2]`` of the kept instances.
+        visibility: Original visibility ``[N, K]`` of the kept instances.
+        image_height: Augmented image height in pixels.
+        image_width: Augmented image width in pixels.
+        flip_permutation: Joint-slot permutation from :func:`keypoint_flip_permutation` when this image was
+            horizontally flipped, else ``None``.
+
+    Returns:
+        Float tensor ``[N, K, 3]`` of ``(x, y, v)`` rows.
+    """
+    keypoints = torch.cat((xy, visibility.unsqueeze(-1)), dim=-1)
+    inside = (xy[..., 0] >= 0) & (xy[..., 0] <= image_width) & (xy[..., 1] >= 0) & (xy[..., 1] <= image_height)
+    keypoints = keypoints.masked_fill((~inside | (visibility <= 0)).unsqueeze(-1), 0)
+    if flip_permutation is not None:
+        keypoints = keypoints[:, flip_permutation]
+    return keypoints

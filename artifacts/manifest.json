@@ -1,0 +1,900 @@
+{
+  "schema": "marn_github_artifacts_v1",
+  "repository": "lianzihao0925-cmd/MARN-DETR",
+  "release_tag": "archive-20261024",
+  "created_at_utc": "2026-10-24T02:25:04.475313+00:00",
+  "artifacts": [
+    {
+      "asset_name": "e69d700c1cd1a6d5d9e8a1e48ae0f763e9fab2f8a6cdc917bec754485ca05ee7.ckpt",
+      "bytes": 259382969,
+      "sha256": "e69d700c1cd1a6d5d9e8a1e48ae0f763e9fab2f8a6cdc917bec754485ca05ee7",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/marn/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/e69d700c1cd1a6d5d9e8a1e48ae0f763e9fab2f8a6cdc917bec754485ca05ee7.ckpt"
+    },
+    {
+      "asset_name": "b0d6577c26fe9d04543a6c24e3c8c8221b2034bc8b7a443eb0fde0126638e76f.pth",
+      "bytes": 129295877,
+      "sha256": "b0d6577c26fe9d04543a6c24e3c8c8221b2034bc8b7a443eb0fde0126638e76f",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/marn/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/b0d6577c26fe9d04543a6c24e3c8c8221b2034bc8b7a443eb0fde0126638e76f.pth"
+    },
+    {
+      "asset_name": "146c6e6d0d7ade340150cc1f4055a399e6330cea3a73f87dc9c99dcb5d59da10.ckpt",
+      "bytes": 259382841,
+      "sha256": "146c6e6d0d7ade340150cc1f4055a399e6330cea3a73f87dc9c99dcb5d59da10",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/marn/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/146c6e6d0d7ade340150cc1f4055a399e6330cea3a73f87dc9c99dcb5d59da10.ckpt"
+    },
+    {
+      "asset_name": "1a62d7ca2a67e596ccff413db84fb928263b48ffe99bafdad0096f0a93ce6a9e.pth",
+      "bytes": 129295877,
+      "sha256": "1a62d7ca2a67e596ccff413db84fb928263b48ffe99bafdad0096f0a93ce6a9e",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/marn/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/1a62d7ca2a67e596ccff413db84fb928263b48ffe99bafdad0096f0a93ce6a9e.pth"
+    },
+    {
+      "asset_name": "70b73fd2a3186232140a1664c96bcdb79aa9f1f246fe4413d2a2f2df2d8d2b27.ckpt",
+      "bytes": 259383033,
+      "sha256": "70b73fd2a3186232140a1664c96bcdb79aa9f1f246fe4413d2a2f2df2d8d2b27",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/marn/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/70b73fd2a3186232140a1664c96bcdb79aa9f1f246fe4413d2a2f2df2d8d2b27.ckpt"
+    },
+    {
+      "asset_name": "580411049802e1e18efad3d18e5da7b55baa3cfbe29df6f7a7df913a8f4f8caf.pth",
+      "bytes": 129295941,
+      "sha256": "580411049802e1e18efad3d18e5da7b55baa3cfbe29df6f7a7df913a8f4f8caf",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/marn/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/580411049802e1e18efad3d18e5da7b55baa3cfbe29df6f7a7df913a8f4f8caf.pth"
+    },
+    {
+      "asset_name": "fc6a1eb76483c666de8a8e49c16bcacd76d3d663bb9b3d5f8575372a6d0e7d66.pth",
+      "bytes": 129295941,
+      "sha256": "fc6a1eb76483c666de8a8e49c16bcacd76d3d663bb9b3d5f8575372a6d0e7d66",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/marn/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/fc6a1eb76483c666de8a8e49c16bcacd76d3d663bb9b3d5f8575372a6d0e7d66.pth"
+    },
+    {
+      "asset_name": "84f223731bc4e526a553c2fbd1949ed440db202fec6ff59abf0542acb42bc8bb.ckpt",
+      "bytes": 259382841,
+      "sha256": "84f223731bc4e526a553c2fbd1949ed440db202fec6ff59abf0542acb42bc8bb",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/query_only/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/84f223731bc4e526a553c2fbd1949ed440db202fec6ff59abf0542acb42bc8bb.ckpt"
+    },
+    {
+      "asset_name": "1195406bbed3501d401a8e2a0656f3b59e206eb501d10b8bfefc59b479959a71.pth",
+      "bytes": 129295877,
+      "sha256": "1195406bbed3501d401a8e2a0656f3b59e206eb501d10b8bfefc59b479959a71",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/query_only/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/1195406bbed3501d401a8e2a0656f3b59e206eb501d10b8bfefc59b479959a71.pth"
+    },
+    {
+      "asset_name": "cf36dd445ae0e22da6fc6f1cc59a7f9b6622ff00266334a87375eb6aa0043283.ckpt",
+      "bytes": 259382713,
+      "sha256": "cf36dd445ae0e22da6fc6f1cc59a7f9b6622ff00266334a87375eb6aa0043283",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/query_only/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/cf36dd445ae0e22da6fc6f1cc59a7f9b6622ff00266334a87375eb6aa0043283.ckpt"
+    },
+    {
+      "asset_name": "f803f9effc89cd825991e3cb5de7f3988cd3f4557a771f720da66246d65eaf4a.pth",
+      "bytes": 129295941,
+      "sha256": "f803f9effc89cd825991e3cb5de7f3988cd3f4557a771f720da66246d65eaf4a",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/query_only/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/f803f9effc89cd825991e3cb5de7f3988cd3f4557a771f720da66246d65eaf4a.pth"
+    },
+    {
+      "asset_name": "5345004404c49c41249fa71a74aa489a42674af2d775ce0c59a262f8772af297.ckpt",
+      "bytes": 259382969,
+      "sha256": "5345004404c49c41249fa71a74aa489a42674af2d775ce0c59a262f8772af297",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/query_only/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/5345004404c49c41249fa71a74aa489a42674af2d775ce0c59a262f8772af297.ckpt"
+    },
+    {
+      "asset_name": "04f7db9517fbab2ad6e7e247266bef4f370b3bede16c9cec3ab5801325675387.pth",
+      "bytes": 129296005,
+      "sha256": "04f7db9517fbab2ad6e7e247266bef4f370b3bede16c9cec3ab5801325675387",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/query_only/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/04f7db9517fbab2ad6e7e247266bef4f370b3bede16c9cec3ab5801325675387.pth"
+    },
+    {
+      "asset_name": "0aa87a1794320dbb639aab4e1948ba175e480891910c752bd127588245cf45ab.pth",
+      "bytes": 129296005,
+      "sha256": "0aa87a1794320dbb639aab4e1948ba175e480891910c752bd127588245cf45ab",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/query_only/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/0aa87a1794320dbb639aab4e1948ba175e480891910c752bd127588245cf45ab.pth"
+    },
+    {
+      "asset_name": "a46632bf188eee842c8cef14f920747f9ab668e9020a41057185cdfd0a2284da.ckpt",
+      "bytes": 259382969,
+      "sha256": "a46632bf188eee842c8cef14f920747f9ab668e9020a41057185cdfd0a2284da",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/supervised/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/a46632bf188eee842c8cef14f920747f9ab668e9020a41057185cdfd0a2284da.ckpt"
+    },
+    {
+      "asset_name": "711fec90a15c18b4a5bae79aaf91b1c8252cd650a26ea7da32cbf6e1bc56ae56.pth",
+      "bytes": 129295877,
+      "sha256": "711fec90a15c18b4a5bae79aaf91b1c8252cd650a26ea7da32cbf6e1bc56ae56",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/supervised/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/711fec90a15c18b4a5bae79aaf91b1c8252cd650a26ea7da32cbf6e1bc56ae56.pth"
+    },
+    {
+      "asset_name": "6f23db68021ada027f29293c7d90b5ce688396d77d988f9db11725623cd3a096.ckpt",
+      "bytes": 259382841,
+      "sha256": "6f23db68021ada027f29293c7d90b5ce688396d77d988f9db11725623cd3a096",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/supervised/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/6f23db68021ada027f29293c7d90b5ce688396d77d988f9db11725623cd3a096.ckpt"
+    },
+    {
+      "asset_name": "15929a95911b310e7e6555bf451d0c5a996072420b589254eea0326e93f18363.pth",
+      "bytes": 129295877,
+      "sha256": "15929a95911b310e7e6555bf451d0c5a996072420b589254eea0326e93f18363",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/supervised/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/15929a95911b310e7e6555bf451d0c5a996072420b589254eea0326e93f18363.pth"
+    },
+    {
+      "asset_name": "b336f4e04254f0ec64c9d8e5922cfc895510ffcd707b2bfde13fbf3aeffcada0.ckpt",
+      "bytes": 259383097,
+      "sha256": "b336f4e04254f0ec64c9d8e5922cfc895510ffcd707b2bfde13fbf3aeffcada0",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/supervised/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/b336f4e04254f0ec64c9d8e5922cfc895510ffcd707b2bfde13fbf3aeffcada0.ckpt"
+    },
+    {
+      "asset_name": "86664d1465432cb4e958e76320b2bd3abceacf80a39462278ccabb7f9d66cb2d.pth",
+      "bytes": 129295941,
+      "sha256": "86664d1465432cb4e958e76320b2bd3abceacf80a39462278ccabb7f9d66cb2d",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/supervised/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/86664d1465432cb4e958e76320b2bd3abceacf80a39462278ccabb7f9d66cb2d.pth"
+    },
+    {
+      "asset_name": "efdaf420da8b146b3c9e08d574c6d9f8a780253f4e91d0d7e79ccfb5841764ae.pth",
+      "bytes": 129296005,
+      "sha256": "efdaf420da8b146b3c9e08d574c6d9f8a780253f4e91d0d7e79ccfb5841764ae",
+      "paths": [
+        "experiments/marn_c5/frozen_screen/supervised/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/efdaf420da8b146b3c9e08d574c6d9f8a780253f4e91d0d7e79ccfb5841764ae.pth"
+    },
+    {
+      "asset_name": "75ba8ce0b6f3bfd7c343ee87ae044bd448f3c6acdb69e2804f28f76a7ff33282.ckpt",
+      "bytes": 259382905,
+      "sha256": "75ba8ce0b6f3bfd7c343ee87ae044bd448f3c6acdb69e2804f28f76a7ff33282",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/marn/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/75ba8ce0b6f3bfd7c343ee87ae044bd448f3c6acdb69e2804f28f76a7ff33282.ckpt"
+    },
+    {
+      "asset_name": "e7b643c8195785e183b630bf79989211c20a1992c419369ea8a8a1c1c0c33874.pth",
+      "bytes": 129295877,
+      "sha256": "e7b643c8195785e183b630bf79989211c20a1992c419369ea8a8a1c1c0c33874",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/marn/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/e7b643c8195785e183b630bf79989211c20a1992c419369ea8a8a1c1c0c33874.pth"
+    },
+    {
+      "asset_name": "c123ae489f624d06902e4f7b1679991465890c2a51242a641beefd0c2ec323ba.ckpt",
+      "bytes": 259382777,
+      "sha256": "c123ae489f624d06902e4f7b1679991465890c2a51242a641beefd0c2ec323ba",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/marn/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/c123ae489f624d06902e4f7b1679991465890c2a51242a641beefd0c2ec323ba.ckpt"
+    },
+    {
+      "asset_name": "2ef7b77a7cf1a99d96f6b9e0e9d34dbb1ebba3aa58621bab70eeded7e3a28470.pth",
+      "bytes": 129295877,
+      "sha256": "2ef7b77a7cf1a99d96f6b9e0e9d34dbb1ebba3aa58621bab70eeded7e3a28470",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/marn/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/2ef7b77a7cf1a99d96f6b9e0e9d34dbb1ebba3aa58621bab70eeded7e3a28470.pth"
+    },
+    {
+      "asset_name": "5f5e04401f359dda46c4ac019e183912a3368bfe3d18c919f7c26b06dcf154d2.ckpt",
+      "bytes": 259382969,
+      "sha256": "5f5e04401f359dda46c4ac019e183912a3368bfe3d18c919f7c26b06dcf154d2",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/marn/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/5f5e04401f359dda46c4ac019e183912a3368bfe3d18c919f7c26b06dcf154d2.ckpt"
+    },
+    {
+      "asset_name": "2bf0a2ad253842cf6ee6403cac580bfe23d54b670c3cf870598f1dc3d34a62f7.pth",
+      "bytes": 129295941,
+      "sha256": "2bf0a2ad253842cf6ee6403cac580bfe23d54b670c3cf870598f1dc3d34a62f7",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/marn/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/2bf0a2ad253842cf6ee6403cac580bfe23d54b670c3cf870598f1dc3d34a62f7.pth"
+    },
+    {
+      "asset_name": "43eb855ed2f39800c2a01f7909bac470ac63e539de4ac4c00cd39dec0f47191e.pth",
+      "bytes": 129295941,
+      "sha256": "43eb855ed2f39800c2a01f7909bac470ac63e539de4ac4c00cd39dec0f47191e",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/marn/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/43eb855ed2f39800c2a01f7909bac470ac63e539de4ac4c00cd39dec0f47191e.pth"
+    },
+    {
+      "asset_name": "60e71cd0bab9f5085266542bebe65bb9ba07d245c37dd1546160fa28f9076cf0.ckpt",
+      "bytes": 259382841,
+      "sha256": "60e71cd0bab9f5085266542bebe65bb9ba07d245c37dd1546160fa28f9076cf0",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/query_only/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/60e71cd0bab9f5085266542bebe65bb9ba07d245c37dd1546160fa28f9076cf0.ckpt"
+    },
+    {
+      "asset_name": "c6bb77a4b1ab6d3d6d2fd9fd3df2fbe401c9199b110d985fd5c381eb186b3d6d.pth",
+      "bytes": 129295877,
+      "sha256": "c6bb77a4b1ab6d3d6d2fd9fd3df2fbe401c9199b110d985fd5c381eb186b3d6d",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/query_only/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/c6bb77a4b1ab6d3d6d2fd9fd3df2fbe401c9199b110d985fd5c381eb186b3d6d.pth"
+    },
+    {
+      "asset_name": "73ec184e38d6ae1587924733dda00512b721d2267400952f7db271c822ea73a6.ckpt",
+      "bytes": 259382713,
+      "sha256": "73ec184e38d6ae1587924733dda00512b721d2267400952f7db271c822ea73a6",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/query_only/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/73ec184e38d6ae1587924733dda00512b721d2267400952f7db271c822ea73a6.ckpt"
+    },
+    {
+      "asset_name": "463dff4e34ca462378c20144a5e1ad38506f50943e003d1e87cc6ac18c51283d.pth",
+      "bytes": 129295877,
+      "sha256": "463dff4e34ca462378c20144a5e1ad38506f50943e003d1e87cc6ac18c51283d",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/query_only/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/463dff4e34ca462378c20144a5e1ad38506f50943e003d1e87cc6ac18c51283d.pth"
+    },
+    {
+      "asset_name": "3d27a27d7ab95d9435e62dce0cb94824d8d384edf2e8bbd4168ec7e5a9fd9248.ckpt",
+      "bytes": 259382905,
+      "sha256": "3d27a27d7ab95d9435e62dce0cb94824d8d384edf2e8bbd4168ec7e5a9fd9248",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/query_only/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/3d27a27d7ab95d9435e62dce0cb94824d8d384edf2e8bbd4168ec7e5a9fd9248.ckpt"
+    },
+    {
+      "asset_name": "90ee2e545c7f31351702ae511f7056fc670a0a599a024edcad5d7f2f3f29ffc3.pth",
+      "bytes": 129296005,
+      "sha256": "90ee2e545c7f31351702ae511f7056fc670a0a599a024edcad5d7f2f3f29ffc3",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/query_only/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/90ee2e545c7f31351702ae511f7056fc670a0a599a024edcad5d7f2f3f29ffc3.pth"
+    },
+    {
+      "asset_name": "d0bbc76b0a283c469dbbc10b1b86035821cfad3fa7367cd98af8395abb9eb062.pth",
+      "bytes": 129296005,
+      "sha256": "d0bbc76b0a283c469dbbc10b1b86035821cfad3fa7367cd98af8395abb9eb062",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/query_only/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/d0bbc76b0a283c469dbbc10b1b86035821cfad3fa7367cd98af8395abb9eb062.pth"
+    },
+    {
+      "asset_name": "cd73fd25a32a260ded06b08d31cc74b5233d9a8021e04087399d3e2e3a89293a.ckpt",
+      "bytes": 259382905,
+      "sha256": "cd73fd25a32a260ded06b08d31cc74b5233d9a8021e04087399d3e2e3a89293a",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/supervised/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/cd73fd25a32a260ded06b08d31cc74b5233d9a8021e04087399d3e2e3a89293a.ckpt"
+    },
+    {
+      "asset_name": "dbca34d9c68e0ce523d0785c250bbfff5c66708cde8c93d7119c398608ebe563.pth",
+      "bytes": 129295877,
+      "sha256": "dbca34d9c68e0ce523d0785c250bbfff5c66708cde8c93d7119c398608ebe563",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/supervised/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/dbca34d9c68e0ce523d0785c250bbfff5c66708cde8c93d7119c398608ebe563.pth"
+    },
+    {
+      "asset_name": "b8d8fecdb789206895a53bffef84634d0f5c7e29d2a31a70aea09972d292d00f.ckpt",
+      "bytes": 259382841,
+      "sha256": "b8d8fecdb789206895a53bffef84634d0f5c7e29d2a31a70aea09972d292d00f",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/supervised/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/b8d8fecdb789206895a53bffef84634d0f5c7e29d2a31a70aea09972d292d00f.ckpt"
+    },
+    {
+      "asset_name": "983c4d13a09d8480276d452ac8817f6b0738e7fcd606af29ecb7728e252a967f.pth",
+      "bytes": 129295877,
+      "sha256": "983c4d13a09d8480276d452ac8817f6b0738e7fcd606af29ecb7728e252a967f",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/supervised/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/983c4d13a09d8480276d452ac8817f6b0738e7fcd606af29ecb7728e252a967f.pth"
+    },
+    {
+      "asset_name": "42113b86e73f4f4b86d0437f2b9039d25bb873d9012379366d5f0bfea0e216e2.ckpt",
+      "bytes": 259383033,
+      "sha256": "42113b86e73f4f4b86d0437f2b9039d25bb873d9012379366d5f0bfea0e216e2",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/supervised/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/42113b86e73f4f4b86d0437f2b9039d25bb873d9012379366d5f0bfea0e216e2.ckpt"
+    },
+    {
+      "asset_name": "88bf2b69a39b816eb69dab7d958a356034c11ac758156f8a614a0b1fbb9a0e0a.pth",
+      "bytes": 129295941,
+      "sha256": "88bf2b69a39b816eb69dab7d958a356034c11ac758156f8a614a0b1fbb9a0e0a",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/supervised/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/88bf2b69a39b816eb69dab7d958a356034c11ac758156f8a614a0b1fbb9a0e0a.pth"
+    },
+    {
+      "asset_name": "3b5a719105599e22857843f6d3e7c53d18976dc90827fabed453682ce6f33146.pth",
+      "bytes": 129296005,
+      "sha256": "3b5a719105599e22857843f6d3e7c53d18976dc90827fabed453682ce6f33146",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke/supervised/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/3b5a719105599e22857843f6d3e7c53d18976dc90827fabed453682ce6f33146.pth"
+    },
+    {
+      "asset_name": "9497cae20a964924eed1c3cf435bc25e46f41bf4161946ce253ea49ec00e6faa.ckpt",
+      "bytes": 259382905,
+      "sha256": "9497cae20a964924eed1c3cf435bc25e46f41bf4161946ce253ea49ec00e6faa",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/marn/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/9497cae20a964924eed1c3cf435bc25e46f41bf4161946ce253ea49ec00e6faa.ckpt"
+    },
+    {
+      "asset_name": "c84e07cea72b9ddfb12776dca21293f4434d51e66b5a4e372c90f1a779f61579.pth",
+      "bytes": 129295877,
+      "sha256": "c84e07cea72b9ddfb12776dca21293f4434d51e66b5a4e372c90f1a779f61579",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/marn/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/c84e07cea72b9ddfb12776dca21293f4434d51e66b5a4e372c90f1a779f61579.pth"
+    },
+    {
+      "asset_name": "84865efa7596047c7da921fea1cd0f6c6ff37397ce79020d6dadb8be196578d6.ckpt",
+      "bytes": 259382777,
+      "sha256": "84865efa7596047c7da921fea1cd0f6c6ff37397ce79020d6dadb8be196578d6",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/marn/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/84865efa7596047c7da921fea1cd0f6c6ff37397ce79020d6dadb8be196578d6.ckpt"
+    },
+    {
+      "asset_name": "b73039066ad149bc10002d3ec6eb6a48a08d5fa47152731ae208bd9b59863108.pth",
+      "bytes": 129295877,
+      "sha256": "b73039066ad149bc10002d3ec6eb6a48a08d5fa47152731ae208bd9b59863108",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/marn/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/b73039066ad149bc10002d3ec6eb6a48a08d5fa47152731ae208bd9b59863108.pth"
+    },
+    {
+      "asset_name": "48a09782caf56452ab2e43bca5672bb7420bc1c0c97ade03eb621ea201312ba6.ckpt",
+      "bytes": 259382969,
+      "sha256": "48a09782caf56452ab2e43bca5672bb7420bc1c0c97ade03eb621ea201312ba6",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/marn/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/48a09782caf56452ab2e43bca5672bb7420bc1c0c97ade03eb621ea201312ba6.ckpt"
+    },
+    {
+      "asset_name": "95f19809fc58ea9ac97e71425be0199f75612b7ff84276ec6e4a9096cfc9c467.pth",
+      "bytes": 129295941,
+      "sha256": "95f19809fc58ea9ac97e71425be0199f75612b7ff84276ec6e4a9096cfc9c467",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/marn/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/95f19809fc58ea9ac97e71425be0199f75612b7ff84276ec6e4a9096cfc9c467.pth"
+    },
+    {
+      "asset_name": "e11ef75b06a1eaa0cec57c9e5e850598342fb92f3175a3eac5ea892e2e5682eb.pth",
+      "bytes": 129295941,
+      "sha256": "e11ef75b06a1eaa0cec57c9e5e850598342fb92f3175a3eac5ea892e2e5682eb",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/marn/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/e11ef75b06a1eaa0cec57c9e5e850598342fb92f3175a3eac5ea892e2e5682eb.pth"
+    },
+    {
+      "asset_name": "a37f1d37003a05cac45e9c3ec8183a93a4c3591d96ff16c80abd02ec9fc2b6c2.ckpt",
+      "bytes": 259382841,
+      "sha256": "a37f1d37003a05cac45e9c3ec8183a93a4c3591d96ff16c80abd02ec9fc2b6c2",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/query_only/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/a37f1d37003a05cac45e9c3ec8183a93a4c3591d96ff16c80abd02ec9fc2b6c2.ckpt"
+    },
+    {
+      "asset_name": "824422912c01780e064fc223c4418d1478f5c3b93ed2a880c449648cdb299437.pth",
+      "bytes": 129295877,
+      "sha256": "824422912c01780e064fc223c4418d1478f5c3b93ed2a880c449648cdb299437",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/query_only/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/824422912c01780e064fc223c4418d1478f5c3b93ed2a880c449648cdb299437.pth"
+    },
+    {
+      "asset_name": "dfc089360aa17c454d8286133835f34c8c718e9be16ac7d93b651651e340e1a5.ckpt",
+      "bytes": 259382713,
+      "sha256": "dfc089360aa17c454d8286133835f34c8c718e9be16ac7d93b651651e340e1a5",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/query_only/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/dfc089360aa17c454d8286133835f34c8c718e9be16ac7d93b651651e340e1a5.ckpt"
+    },
+    {
+      "asset_name": "6b567123b05784126eb3e4db4c41193aaf6733eb2ff4c73137cfc637d0c43aa3.pth",
+      "bytes": 129295877,
+      "sha256": "6b567123b05784126eb3e4db4c41193aaf6733eb2ff4c73137cfc637d0c43aa3",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/query_only/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/6b567123b05784126eb3e4db4c41193aaf6733eb2ff4c73137cfc637d0c43aa3.pth"
+    },
+    {
+      "asset_name": "d8c1199ca60f9ce6debb384fb8af19445e37b435508fdf54a6ec69a947cd104a.ckpt",
+      "bytes": 259382905,
+      "sha256": "d8c1199ca60f9ce6debb384fb8af19445e37b435508fdf54a6ec69a947cd104a",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/query_only/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/d8c1199ca60f9ce6debb384fb8af19445e37b435508fdf54a6ec69a947cd104a.ckpt"
+    },
+    {
+      "asset_name": "f306f35542889a234f49d60ca893aecf7305c7fa9b5db3e49b1b0f8e100d7eaf.pth",
+      "bytes": 129296005,
+      "sha256": "f306f35542889a234f49d60ca893aecf7305c7fa9b5db3e49b1b0f8e100d7eaf",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/query_only/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/f306f35542889a234f49d60ca893aecf7305c7fa9b5db3e49b1b0f8e100d7eaf.pth"
+    },
+    {
+      "asset_name": "600e7980047537ff70873dd58e4d59398ce69bee897602f89fa499297a3ce36a.pth",
+      "bytes": 129296005,
+      "sha256": "600e7980047537ff70873dd58e4d59398ce69bee897602f89fa499297a3ce36a",
+      "paths": [
+        "experiments/marn_c5/frozen_smoke_attempt3/query_only/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/600e7980047537ff70873dd58e4d59398ce69bee897602f89fa499297a3ce36a.pth"
+    },
+    {
+      "asset_name": "7081cba73fb0e638d79c6e30c72af7156b879eac5f36da4b428de78741448f5a.pt",
+      "bytes": 74047,
+      "sha256": "7081cba73fb0e638d79c6e30c72af7156b879eac5f36da4b428de78741448f5a",
+      "paths": [
+        "experiments/marn_c5/router_pilot/router.pt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/7081cba73fb0e638d79c6e30c72af7156b879eac5f36da4b428de78741448f5a.pt"
+    },
+    {
+      "asset_name": "dfdd11f2db8f6c746d9d0abbec7584fa4141796215a039e9352981631fd253d3.pt",
+      "bytes": 8751583,
+      "sha256": "dfdd11f2db8f6c746d9d0abbec7584fa4141796215a039e9352981631fd253d3",
+      "paths": [
+        "experiments/marn_c5/router_pilot/train_probe_examples.pt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/dfdd11f2db8f6c746d9d0abbec7584fa4141796215a039e9352981631fd253d3.pt"
+    },
+    {
+      "asset_name": "ad50fe4c194b1f4cff2113033098bb12fac9de3d3440abad0cd521d576659ae9.pt",
+      "bytes": 19615,
+      "sha256": "ad50fe4c194b1f4cff2113033098bb12fac9de3d3440abad0cd521d576659ae9",
+      "paths": [
+        "experiments/marn_c5/router_smoke/train_probe_examples.pt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/ad50fe4c194b1f4cff2113033098bb12fac9de3d3440abad0cd521d576659ae9.pt"
+    },
+    {
+      "asset_name": "513bab6d7a4d6d141b4cf92332751384bed4c06e6512fa4292ff6c1be10dfaaf.ckpt",
+      "bytes": 516967347,
+      "sha256": "513bab6d7a4d6d141b4cf92332751384bed4c06e6512fa4292ff6c1be10dfaaf",
+      "paths": [
+        "experiments/marn_c6/online_screen/online/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/513bab6d7a4d6d141b4cf92332751384bed4c06e6512fa4292ff6c1be10dfaaf.ckpt"
+    },
+    {
+      "asset_name": "65af6e2686d843d3308225a0c431c3d3af89695e304f47c93c31f852e5159d8f.ckpt",
+      "bytes": 516967283,
+      "sha256": "65af6e2686d843d3308225a0c431c3d3af89695e304f47c93c31f852e5159d8f",
+      "paths": [
+        "experiments/marn_c6/online_screen/online/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/65af6e2686d843d3308225a0c431c3d3af89695e304f47c93c31f852e5159d8f.ckpt"
+    },
+    {
+      "asset_name": "0eb914e46d90bf5745488685aaa5220ab2fc40c28f1cdb8cb1de4d9bebdd3c6f.ckpt",
+      "bytes": 516967475,
+      "sha256": "0eb914e46d90bf5745488685aaa5220ab2fc40c28f1cdb8cb1de4d9bebdd3c6f",
+      "paths": [
+        "experiments/marn_c6/online_screen/online/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/0eb914e46d90bf5745488685aaa5220ab2fc40c28f1cdb8cb1de4d9bebdd3c6f.ckpt"
+    },
+    {
+      "asset_name": "4cfb9e399e5fe0ab1168239066aa388836c429ff30bdaf19e936cc6138ad252d.pth",
+      "bytes": 129365181,
+      "sha256": "4cfb9e399e5fe0ab1168239066aa388836c429ff30bdaf19e936cc6138ad252d",
+      "paths": [
+        "experiments/marn_c6/online_screen/online/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/4cfb9e399e5fe0ab1168239066aa388836c429ff30bdaf19e936cc6138ad252d.pth"
+    },
+    {
+      "asset_name": "9440ac35a3aaa4f41b80f835ab16850966b7cb2560da766ee3d4ef86161b715e.pth",
+      "bytes": 129365181,
+      "sha256": "9440ac35a3aaa4f41b80f835ab16850966b7cb2560da766ee3d4ef86161b715e",
+      "paths": [
+        "experiments/marn_c6/online_screen/online/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/9440ac35a3aaa4f41b80f835ab16850966b7cb2560da766ee3d4ef86161b715e.pth"
+    },
+    {
+      "asset_name": "636860c51ed493ee6cbb59a8bb76eb3794f8086bcf8846bbe5287779f419cd55.ckpt",
+      "bytes": 516827967,
+      "sha256": "636860c51ed493ee6cbb59a8bb76eb3794f8086bcf8846bbe5287779f419cd55",
+      "paths": [
+        "experiments/marn_c6/online_screen/query_only/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/636860c51ed493ee6cbb59a8bb76eb3794f8086bcf8846bbe5287779f419cd55.ckpt"
+    },
+    {
+      "asset_name": "0850fca8b0c88ce1ddd524583e872b9754053ce1488be6c913835d33b313f0e0.ckpt",
+      "bytes": 516827839,
+      "sha256": "0850fca8b0c88ce1ddd524583e872b9754053ce1488be6c913835d33b313f0e0",
+      "paths": [
+        "experiments/marn_c6/online_screen/query_only/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/0850fca8b0c88ce1ddd524583e872b9754053ce1488be6c913835d33b313f0e0.ckpt"
+    },
+    {
+      "asset_name": "d6dbbe4aa0dfc6220b09981ae56f836a2681dae257864e278efbbd9b46d5bb8d.ckpt",
+      "bytes": 516828031,
+      "sha256": "d6dbbe4aa0dfc6220b09981ae56f836a2681dae257864e278efbbd9b46d5bb8d",
+      "paths": [
+        "experiments/marn_c6/online_screen/query_only/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/d6dbbe4aa0dfc6220b09981ae56f836a2681dae257864e278efbbd9b46d5bb8d.ckpt"
+    },
+    {
+      "asset_name": "ccf84874354132336b9b246a5b14fa5860d48b405fa8d9c183f3b1e577fd6d9b.pth",
+      "bytes": 129365117,
+      "sha256": "ccf84874354132336b9b246a5b14fa5860d48b405fa8d9c183f3b1e577fd6d9b",
+      "paths": [
+        "experiments/marn_c6/online_screen/query_only/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/ccf84874354132336b9b246a5b14fa5860d48b405fa8d9c183f3b1e577fd6d9b.pth"
+    },
+    {
+      "asset_name": "49f58dad05e26e5ba09a19427e13f2efd822e4b39fc62c7b9eeb167b1b33b629.pth",
+      "bytes": 129365117,
+      "sha256": "49f58dad05e26e5ba09a19427e13f2efd822e4b39fc62c7b9eeb167b1b33b629",
+      "paths": [
+        "experiments/marn_c6/online_screen/query_only/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/49f58dad05e26e5ba09a19427e13f2efd822e4b39fc62c7b9eeb167b1b33b629.pth"
+    },
+    {
+      "asset_name": "1745a8ef611f614e0acb99157a53c5f2ed100706dda7b7d872c04cd631b9c5de.ckpt",
+      "bytes": 516829628,
+      "sha256": "1745a8ef611f614e0acb99157a53c5f2ed100706dda7b7d872c04cd631b9c5de",
+      "paths": [
+        "experiments/marn_c6/online_screen/random/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/1745a8ef611f614e0acb99157a53c5f2ed100706dda7b7d872c04cd631b9c5de.ckpt"
+    },
+    {
+      "asset_name": "a88d1f7b9fac869faf2ead161acfed1be7e0e1bc247c1a09338e7e4995bed6c1.ckpt",
+      "bytes": 516829564,
+      "sha256": "a88d1f7b9fac869faf2ead161acfed1be7e0e1bc247c1a09338e7e4995bed6c1",
+      "paths": [
+        "experiments/marn_c6/online_screen/random/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/a88d1f7b9fac869faf2ead161acfed1be7e0e1bc247c1a09338e7e4995bed6c1.ckpt"
+    },
+    {
+      "asset_name": "d817e441ccd15f9b9806fbf5245d2d67359eeed991816c0b91853dd7b3570f99.ckpt",
+      "bytes": 516829756,
+      "sha256": "d817e441ccd15f9b9806fbf5245d2d67359eeed991816c0b91853dd7b3570f99",
+      "paths": [
+        "experiments/marn_c6/online_screen/random/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/d817e441ccd15f9b9806fbf5245d2d67359eeed991816c0b91853dd7b3570f99.ckpt"
+    },
+    {
+      "asset_name": "b6cfab89741e89e7d8cedcac170b56f0d7c46792c096ee1178c90baee6a8e999.pth",
+      "bytes": 129365181,
+      "sha256": "b6cfab89741e89e7d8cedcac170b56f0d7c46792c096ee1178c90baee6a8e999",
+      "paths": [
+        "experiments/marn_c6/online_screen/random/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/b6cfab89741e89e7d8cedcac170b56f0d7c46792c096ee1178c90baee6a8e999.pth"
+    },
+    {
+      "asset_name": "56389848b3d52f0f747eb8fdd7580db004070df8dcd2e0782b4339df67336cf2.pth",
+      "bytes": 129365181,
+      "sha256": "56389848b3d52f0f747eb8fdd7580db004070df8dcd2e0782b4339df67336cf2",
+      "paths": [
+        "experiments/marn_c6/online_screen/random/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/56389848b3d52f0f747eb8fdd7580db004070df8dcd2e0782b4339df67336cf2.pth"
+    },
+    {
+      "asset_name": "07f27489b9ac446cb7b5a65a73272fdffa79bd66e371dfed23dd4771712d6d35.pth",
+      "bytes": 128773567,
+      "sha256": "07f27489b9ac446cb7b5a65a73272fdffa79bd66e371dfed23dd4771712d6d35",
+      "paths": [
+        "runs/baseline_10ep_seed42/checkpoint_best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/07f27489b9ac446cb7b5a65a73272fdffa79bd66e371dfed23dd4771712d6d35.pth"
+    },
+    {
+      "asset_name": "31dadab9f1b53e826210b011ce0bb85e42bc7eca17a70d6dc0fc13b8a3af20df.pth",
+      "bytes": 257361847,
+      "sha256": "31dadab9f1b53e826210b011ce0bb85e42bc7eca17a70d6dc0fc13b8a3af20df",
+      "paths": [
+        "runs/baseline_10ep_seed42/checkpoint_best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/31dadab9f1b53e826210b011ce0bb85e42bc7eca17a70d6dc0fc13b8a3af20df.pth"
+    },
+    {
+      "asset_name": "ffa94e5460b91293d3bb862c09b24180707ce44e3fcfb92496fec3f9f9ddca07.pth",
+      "bytes": 257344143,
+      "sha256": "ffa94e5460b91293d3bb862c09b24180707ce44e3fcfb92496fec3f9f9ddca07",
+      "paths": [
+        "runs/baseline_10ep_seed42/checkpoint_best_total.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/ffa94e5460b91293d3bb862c09b24180707ce44e3fcfb92496fec3f9f9ddca07.pth"
+    },
+    {
+      "asset_name": "bbc0b30c42fecc2e248c0bbe56af9961a1b1b80f8ba00eb90bc1033061d3a61a.ckpt",
+      "bytes": 514621841,
+      "sha256": "bbc0b30c42fecc2e248c0bbe56af9961a1b1b80f8ba00eb90bc1033061d3a61a",
+      "paths": [
+        "runs/baseline_10ep_seed42/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/bbc0b30c42fecc2e248c0bbe56af9961a1b1b80f8ba00eb90bc1033061d3a61a.ckpt"
+    },
+    {
+      "asset_name": "61a4f689c0e26123580504f34d23250e8f109acee5f8bfd2ff61d564f2c7dc67.pth",
+      "bytes": 128768089,
+      "sha256": "61a4f689c0e26123580504f34d23250e8f109acee5f8bfd2ff61d564f2c7dc67",
+      "paths": [
+        "runs/baseline_10ep_seed42/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/61a4f689c0e26123580504f34d23250e8f109acee5f8bfd2ff61d564f2c7dc67.pth"
+    },
+    {
+      "asset_name": "f89cfd95f69a4328b0f91e9e2fefdbf3affa8af9f2348426dad5cac5784f4df6.pth",
+      "bytes": 128773247,
+      "sha256": "f89cfd95f69a4328b0f91e9e2fefdbf3affa8af9f2348426dad5cac5784f4df6",
+      "paths": [
+        "runs/epoch_check/checkpoint_best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/f89cfd95f69a4328b0f91e9e2fefdbf3affa8af9f2348426dad5cac5784f4df6.pth"
+    },
+    {
+      "asset_name": "8c97ab9461a53b22ee6dae9740f81d127dcd0c7c61c907305b5848c0dfe2247e.pth",
+      "bytes": 257361591,
+      "sha256": "8c97ab9461a53b22ee6dae9740f81d127dcd0c7c61c907305b5848c0dfe2247e",
+      "paths": [
+        "runs/epoch_check/checkpoint_best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/8c97ab9461a53b22ee6dae9740f81d127dcd0c7c61c907305b5848c0dfe2247e.pth"
+    },
+    {
+      "asset_name": "1ee70af81e1db598338f8bcfc832c518ab09c638a45c8c77b2aa71bf2477f1b8.pth",
+      "bytes": 128766463,
+      "sha256": "1ee70af81e1db598338f8bcfc832c518ab09c638a45c8c77b2aa71bf2477f1b8",
+      "paths": [
+        "runs/epoch_check/checkpoint_best_total.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/1ee70af81e1db598338f8bcfc832c518ab09c638a45c8c77b2aa71bf2477f1b8.pth"
+    },
+    {
+      "asset_name": "784a784dc48541517c6cf227a31bb6c2fb4acc1719b8b97bba4d126cd05fd818.ckpt",
+      "bytes": 514621521,
+      "sha256": "784a784dc48541517c6cf227a31bb6c2fb4acc1719b8b97bba4d126cd05fd818",
+      "paths": [
+        "runs/epoch_check/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/784a784dc48541517c6cf227a31bb6c2fb4acc1719b8b97bba4d126cd05fd818.ckpt"
+    },
+    {
+      "asset_name": "c5656ef6fc113defeaff7c27ebf51f314d15ee96f68a349d5dd8ea32755fdbe1.pth",
+      "bytes": 128767833,
+      "sha256": "c5656ef6fc113defeaff7c27ebf51f314d15ee96f68a349d5dd8ea32755fdbe1",
+      "paths": [
+        "runs/epoch_check/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/c5656ef6fc113defeaff7c27ebf51f314d15ee96f68a349d5dd8ea32755fdbe1.pth"
+    },
+    {
+      "asset_name": "9d08bf58fe817141552b51c7be690708467488c05f5a4a7224fdb9407d1c6197.ckpt",
+      "bytes": 516688583,
+      "sha256": "9d08bf58fe817141552b51c7be690708467488c05f5a4a7224fdb9407d1c6197",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/marn/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/9d08bf58fe817141552b51c7be690708467488c05f5a4a7224fdb9407d1c6197.ckpt"
+    },
+    {
+      "asset_name": "d955674172a7b8807aaa7da103e97998226ae029f24731fe41ebf2df87ff9562.pth",
+      "bytes": 129295877,
+      "sha256": "d955674172a7b8807aaa7da103e97998226ae029f24731fe41ebf2df87ff9562",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/marn/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/d955674172a7b8807aaa7da103e97998226ae029f24731fe41ebf2df87ff9562.pth"
+    },
+    {
+      "asset_name": "2a81814f871e02dd9bb2ca74740757c6a6c9bb9179ad8209c0684d5c6506e069.ckpt",
+      "bytes": 516688455,
+      "sha256": "2a81814f871e02dd9bb2ca74740757c6a6c9bb9179ad8209c0684d5c6506e069",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/marn/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/2a81814f871e02dd9bb2ca74740757c6a6c9bb9179ad8209c0684d5c6506e069.ckpt"
+    },
+    {
+      "asset_name": "82c126342f1d45f8d95774bcd1a4ded829f61a7bb0dedf9d1bd60b7c769e31f5.pth",
+      "bytes": 129295877,
+      "sha256": "82c126342f1d45f8d95774bcd1a4ded829f61a7bb0dedf9d1bd60b7c769e31f5",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/marn/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/82c126342f1d45f8d95774bcd1a4ded829f61a7bb0dedf9d1bd60b7c769e31f5.pth"
+    },
+    {
+      "asset_name": "801ec4b9a8fcdc0df841e823561d090ff668b1a67d1a0eb2814ad0f04179c033.ckpt",
+      "bytes": 516690119,
+      "sha256": "801ec4b9a8fcdc0df841e823561d090ff668b1a67d1a0eb2814ad0f04179c033",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/marn/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/801ec4b9a8fcdc0df841e823561d090ff668b1a67d1a0eb2814ad0f04179c033.ckpt"
+    },
+    {
+      "asset_name": "fb1e9a621085fd2b74a7737e97b5549441ca5b6c648e7006c806d6ed9d323bbb.pth",
+      "bytes": 129296005,
+      "sha256": "fb1e9a621085fd2b74a7737e97b5549441ca5b6c648e7006c806d6ed9d323bbb",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/marn/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/fb1e9a621085fd2b74a7737e97b5549441ca5b6c648e7006c806d6ed9d323bbb.pth"
+    },
+    {
+      "asset_name": "3064b63db2466e4bb4a4da5e2ca0079fde0bdf15e59aaa4c3b1f9bb5fd7d0546.pth",
+      "bytes": 129296005,
+      "sha256": "3064b63db2466e4bb4a4da5e2ca0079fde0bdf15e59aaa4c3b1f9bb5fd7d0546",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/marn/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/3064b63db2466e4bb4a4da5e2ca0079fde0bdf15e59aaa4c3b1f9bb5fd7d0546.pth"
+    },
+    {
+      "asset_name": "c7487f4019c55f7c5e59848b6a9fc3342adc3e203c778b6c2b5dcf575a94b858.ckpt",
+      "bytes": 516688519,
+      "sha256": "c7487f4019c55f7c5e59848b6a9fc3342adc3e203c778b6c2b5dcf575a94b858",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/query_only/best_ema.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/c7487f4019c55f7c5e59848b6a9fc3342adc3e203c778b6c2b5dcf575a94b858.ckpt"
+    },
+    {
+      "asset_name": "1c78d0116e8046b568bfd3c46d5fbcc4512a6ab4e0bcfdbb8f3e51a54772ef3a.pth",
+      "bytes": 129295941,
+      "sha256": "1c78d0116e8046b568bfd3c46d5fbcc4512a6ab4e0bcfdbb8f3e51a54772ef3a",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/query_only/best_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/1c78d0116e8046b568bfd3c46d5fbcc4512a6ab4e0bcfdbb8f3e51a54772ef3a.pth"
+    },
+    {
+      "asset_name": "8d0f3953ead20d155520b151544581a90a4761f499c0448afb32d49c94928b8c.ckpt",
+      "bytes": 516688391,
+      "sha256": "8d0f3953ead20d155520b151544581a90a4761f499c0448afb32d49c94928b8c",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/query_only/best_regular.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/8d0f3953ead20d155520b151544581a90a4761f499c0448afb32d49c94928b8c.ckpt"
+    },
+    {
+      "asset_name": "a4c86e1632b8699fb341e73d4a7732c427371101c4594cf8563dead9c2d6733b.pth",
+      "bytes": 129295941,
+      "sha256": "a4c86e1632b8699fb341e73d4a7732c427371101c4594cf8563dead9c2d6733b",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/query_only/best_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/a4c86e1632b8699fb341e73d4a7732c427371101c4594cf8563dead9c2d6733b.pth"
+    },
+    {
+      "asset_name": "710352d792d88a78fb7a63748bf1e7ffe21770fa59f86df7cfdfe03621b90d0c.ckpt",
+      "bytes": 516689927,
+      "sha256": "710352d792d88a78fb7a63748bf1e7ffe21770fa59f86df7cfdfe03621b90d0c",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/query_only/last.ckpt"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/710352d792d88a78fb7a63748bf1e7ffe21770fa59f86df7cfdfe03621b90d0c.ckpt"
+    },
+    {
+      "asset_name": "25fc432b9ee4a605d7c643c908e688ff9df47c25725d61fa9b0def8ed8a78710.pth",
+      "bytes": 129296005,
+      "sha256": "25fc432b9ee4a605d7c643c908e688ff9df47c25725d61fa9b0def8ed8a78710",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/query_only/last_ema.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/25fc432b9ee4a605d7c643c908e688ff9df47c25725d61fa9b0def8ed8a78710.pth"
+    },
+    {
+      "asset_name": "41d1b2d50a32ead76dafd7201ceb113589d37b41fa8e4aea33a643e81f286656.pth",
+      "bytes": 129296005,
+      "sha256": "41d1b2d50a32ead76dafd7201ceb113589d37b41fa8e4aea33a643e81f286656",
+      "paths": [
+        "runs/mechanism_pair_seed42_20261016_225833/query_only/last_regular.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/41d1b2d50a32ead76dafd7201ceb113589d37b41fa8e4aea33a643e81f286656.pth"
+    },
+    {
+      "asset_name": "d81979a9213a2109345158ce9232668df4c1ae52e9b8db3f2ec0a8cbad959b33.pth",
+      "bytes": 386045550,
+      "sha256": "d81979a9213a2109345158ce9232668df4c1ae52e9b8db3f2ec0a8cbad959b33",
+      "paths": [
+        "pretrained/rf-detr-small.pth"
+      ],
+      "download_url": "https://github.com/lianzihao0925-cmd/MARN-DETR/releases/download/archive-20261024/d81979a9213a2109345158ce9232668df4c1ae52e9b8db3f2ec0a8cbad959b33.pth"
+    }
+  ],
+  "original_path_policy": "Paths are relative to the AutoDL project; external official weight is under pretrained/."
+}

@@ -1,0 +1,15 @@
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 21:25:52] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 21:25:52] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+loading annotations into memory...
+Done (t=12.52s)
+creating index...
+index created!
+loading annotations into memory...
+Done (t=11.34s)
+creating index...
+index created!
+CORRECTNESS_DONE {"query_gradient_max": 0.045440673828125, "key_gradient_max": 0.1886337399482727, "bank_stopgrad": true, "retrieval_count": 2, "replay": {"fp32": {"exact": true, "max_error": {"pred_logits": 0.0, "pred_boxes": 0.0}}, "bf16": {"exact": true, "max_error": {"pred_logits": 0.0, "pred_boxes": 0.0}}}, "passed": true, "seconds": 30.489984188228846}

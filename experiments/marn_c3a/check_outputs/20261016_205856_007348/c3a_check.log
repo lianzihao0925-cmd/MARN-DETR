@@ -1,0 +1,30 @@
+C3A_SYNTHETIC_IDENTITY_OK
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:129: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  'validate_assignment': lambda model, name, val: model.__pydantic_validator__.validate_assignment(model, name, val),  # pyright: ignore[reportAssignmentType]
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-16 20:59:00] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=12.65s)
+creating index...
+index created!
+[2026-10-16 20:59:14] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.35s)
+creating index...
+index created!
+C3A_BASELINE_DATA_CONFIG_LOADED
+C3A_PAIRED_SPLIT_OK train 62
+C3A_PAIRED_SPLIT_OK val 8
+C3A_COLLATE_TRANSFER_EXACT_OK
+C3A_LOADER_BATCH_OK batch=1/6 images=16
+C3A_LOADER_BATCH_OK batch=2/6 images=32
+C3A_LOADER_BATCH_OK batch=3/6 images=48
+C3A_LOADER_BATCH_OK batch=4/6 images=64
+C3A_LOADER_BATCH_OK batch=5/6 images=80
+C3A_LOADER_BATCH_OK batch=6/6 images=96
+C3A_DATA_PIPELINE_CHECK_COMPLETED

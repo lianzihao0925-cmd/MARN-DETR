@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "frozen_detector_sha256": "4210a355aba5dd11b0691179354f09711be75ca8d7ab9bd150dded8eabaa4742",
+  "adapter_changed": true,
+  "kind": "supervised",
+  "key_gradient_nonzero": true,
+  "out_gradient_nonzero": true,
+  "supervision_examples": 136
+}

@@ -1,0 +1,93 @@
+{
+  "scope": "same trained last regular model, inference interventions only; no training ablation or causal gain claim",
+  "weights": "/root/autodl-tmp/project_marn-detr/runs/mechanism_pair_seed42_20261016_225833/marn/last_regular.pth",
+  "weights_sha256": "3064b63db2466e4bb4a4da5e2ca0079fde0bdf15e59aaa4c3b1f9bb5fd7d0546",
+  "samples": 5000,
+  "max_dets": 100,
+  "seed": 42,
+  "modes": {
+    "real": {
+      "metrics": {
+        "AP": 0.5264879465103149,
+        "AP50": 0.718364953994751,
+        "AP75": 0.5680029392242432,
+        "APs": 0.24359087646007538,
+        "APm": 0.5066736340522766,
+        "APl": 0.7174249887466431,
+        "AR100": 0.6997450590133667
+      },
+      "seconds": 24.49633425846696,
+      "peak_allocated_GiB": 0.3912034034729004,
+      "selected": 150000,
+      "accepted": 150000,
+      "frozen_state": true,
+      "mean_delta_norm_per_accepted": 0.08838643229166666,
+      "mean_relative_delta_per_accepted": 0.005178750406901042,
+      "max_delta_norm": 0.169123575091362,
+      "max_relative_delta": 0.00956749077886343
+    },
+    "disabled": {
+      "metrics": {
+        "AP": 0.5266030430793762,
+        "AP50": 0.7183958292007446,
+        "AP75": 0.5679515600204468,
+        "APs": 0.24354715645313263,
+        "APm": 0.5066128969192505,
+        "APl": 0.7173557281494141,
+        "AR100": 0.6999638676643372
+      },
+      "seconds": 20.865816947072744,
+      "peak_allocated_GiB": 0.39090681076049805,
+      "selected": 0,
+      "accepted": 0,
+      "frozen_state": true
+    },
+    "shuffled_features": {
+      "metrics": {
+        "AP": 0.5266109704971313,
+        "AP50": 0.7183716893196106,
+        "AP75": 0.5682346224784851,
+        "APs": 0.24313105642795563,
+        "APm": 0.5064988136291504,
+        "APl": 0.7174736261367798,
+        "AR100": 0.6999753713607788
+      },
+      "seconds": 23.15565876662731,
+      "peak_allocated_GiB": 0.3912034034729004,
+      "selected": 150000,
+      "accepted": 150000,
+      "frozen_state": true,
+      "mean_delta_norm_per_accepted": 0.09009401692708334,
+      "mean_relative_delta_per_accepted": 0.005278665364583333,
+      "max_delta_norm": 0.17200550436973572,
+      "max_relative_delta": 0.009900601580739021
+    },
+    "shuffled_classes": {
+      "metrics": {
+        "AP": 0.5262923240661621,
+        "AP50": 0.7180583477020264,
+        "AP75": 0.5679255723953247,
+        "APs": 0.24310633540153503,
+        "APm": 0.5065574645996094,
+        "APl": 0.7171066403388977,
+        "AR100": 0.6998680830001831
+      },
+      "seconds": 22.190059915184975,
+      "peak_allocated_GiB": 0.3912034034729004,
+      "selected": 150000,
+      "accepted": 150000,
+      "frozen_state": true,
+      "mean_delta_norm_per_accepted": 0.08914886067708333,
+      "mean_relative_delta_per_accepted": 0.005223090006510417,
+      "max_delta_norm": 0.17067669332027435,
+      "max_relative_delta": 0.009657110087573528
+    }
+  },
+  "source_sha256": {
+    "/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/marn/core.py": "42010d40282af636faf8dee66aaaebde13ba5adcb790cbe30d3598cffc244796",
+    "/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/marn/integration.py": "a69b57f6768ba61824cb846f0fe25924cc9450fbc142d78c72609063a17e4424",
+    "/root/autodl-tmp/project_marn-detr/experiments/marn_c5/diagnose_content.py": "a7833c881fe330a5f9a331ed1e4e50fe0940e217dab8aab9dd2e9ebbf29a3df2"
+  },
+  "wall_seconds": 93.80991172790527,
+  "passed": true
+}

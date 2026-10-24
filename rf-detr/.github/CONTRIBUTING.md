@@ -1,0 +1,560 @@
+# Contributing to RF-DETR
+
+Thank you for helping to advance RF-DETR! Your participation is invaluable in evolving our platform—whether you’re squashing bugs, refining documentation, or rolling out new features. Every contribution pushes the project forward.
+
+## Table of Contents
+
+1. [How to Contribute](#how-to-contribute)
+2. [Project Structure](#project-structure)
+3. [Development Environment Setup](#development-environment-setup)
+4. [Test-Driven Development](#test-driven-development)
+5. [Code Quality and Linting](#code-quality-and-linting)
+6. [Deprecation Policy](#deprecation-policy)
+7. [Building Documentation](#building-documentation)
+8. [CLA Signing](#cla-signing)
+9. [Google-Style Docstrings and Mandatory Type Hints](#google-style-docstrings-and-mandatory-type-hints)
+10. [Reporting Bugs](#reporting-bugs)
+11. [Adding a New Model](#adding-a-new-model)
+12. [Security Considerations](#security-considerations)
+13. [License](#license)
+
+## How to Contribute
+
+Your contributions can be in many forms—whether it’s enhancing existing features, improving documentation, resolving bugs, or proposing new ideas. Here’s a high-level overview to get you started:
+
+1. [Fork the Repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo): Click the “Fork” button on our GitHub page to create your own copy.
+2. [Clone Locally](https://docs.github.com/en/enterprise-server@3.11/repositories/creating-and-managing-repositories/cloning-a-repository): Download your fork to your local development environment.
+3. [Create a Branch](https://docs.github.com/en/desktop/making-changes-in-a-branch/managing-branches-in-github-desktop): Use a descriptive name with appropriate prefix:
+    ```bash
+    # Branch naming convention: {type}/{issue_number}-name_or_description
+    git checkout -b fix/123-authentication_bug
+    git checkout -b feat/678-add_export_support
+    git checkout -b docs/update_readme
+    ```
+    **Prefixes:** `fix/` (bug fixes), `feat/` (new features), `docs/` (documentation), `refactor/`, `test/`, `chore/`
+4. Develop Your Changes: Make your updates, ensuring your commit messages clearly describe your modifications.
+5. [Commit and Push](https://docs.github.com/en/desktop/making-changes-in-a-branch/committing-and-reviewing-changes-to-your-project-in-github-desktop): Run:
+    ```bash
+    git add .
+    git commit -m "A brief description of your changes"
+    git push -u origin your-descriptive-name
+    ```
+6. [Open a Pull Request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request): Submit your pull request against the main development branch. Fill in the [PR template](PULL_REQUEST_TEMPLATE.md) — summary, verification commands and their results, and any related issues.
+
+Before merging, check that all tests pass and that your changes adhere to our development and documentation standards.
+
+## Project Structure
+
+Understanding the project structure will help you navigate the codebase and make contributions effectively.
+
+```
+rf-detr/
+├── .github/              # GitHub configuration
+│   ├── workflows/        # CI/CD pipelines (tests, builds, docs deployment)
+│   ├── CONTRIBUTING.md   # This file - contribution guidelines
+│   ├── copilot-instructions.md  # GitHub Copilot-specific guidance
+│   └── ISSUE_TEMPLATE/   # Issue templates
+├── docs/                 # Documentation source (MkDocs)
+│   ├── *.md              # Documentation pages
+│   └── assets/           # Images and other assets
+├── src/rfdetr/           # Main package source code
+│   ├── __init__.py       # Package entry point
+│   └── ...               # Other modules (models, datasets, utils, etc.)
+├── tests/                # Test suite
+│   ├── test_*.py         # Test files
+│   └── conftest.py       # Pytest configuration and fixtures
+├── pyproject.toml        # Project metadata, dependencies, tool configurations
+├── mkdocs.yaml           # Documentation configuration
+├── .pre-commit-config.yaml  # Pre-commit hooks configuration
+├── README.md             # Project overview and quick start
+├── LICENSE               # Apache 2.0 license
+└── AGENTS.md             # AI agent-specific technical documentation
+```
+
+**Key Directories:**
+
+- **`src/rfdetr/`** - All source code for the RF-DETR package
+
+    - Contains models, datasets, training logic, deployment utilities, and more
+    - Internal organization may change as the project evolves
+
+- **`tests/`** - Comprehensive test suite
+
+    - Unit tests, integration tests, and end-to-end tests
+    - Use `@pytest.mark.gpu` for GPU-dependent tests
+
+- **`docs/`** - Documentation source files
+
+    - Written in Markdown, built with MkDocs
+    - Published to https://rfdetr.roboflow.com
+
+- **`.github/`** - GitHub-specific configuration
+
+    - CI/CD workflows define automated testing and deployment
+    - Contributing guidelines and issue templates
+
+**Important Configuration Files:**
+
+- **`pyproject.toml`** - Single source of truth for:
+
+    - Project metadata and dependencies
+    - Tool configurations (ruff, pytest, coverage, etc.)
+    - Build system configuration
+
+- **`.pre-commit-config.yaml`** - Defines pre-commit hooks for code quality
+
+- **`mkdocs.yaml`** - Documentation site configuration
+
+> [!TIP]
+>
+> When contributing, focus on the relevant directory for your change:
+>
+> - Bug fixes/features → `src/rfdetr/` and `tests/`
+> - Documentation → `docs/`
+> - CI/build issues → `.github/workflows/` or config files
+
+## Development Environment Setup
+
+RF-DETR uses **`uv`** as the package manager for dependency management. Ensure you have Python >=3.10 installed (supports 3.10, 3.11, 3.12, 3.13, 3.14).
+
+### Installing uv
+
+```bash
+pip install uv
+```
+
+### Setting Up Your Development Environment
+
+```bash
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/rf-detr.git
+cd rf-detr
+
+# Create the environment. `uv pip install` installs into an existing virtualenv and
+# will not create one for you.
+uv venv
+
+# Install the extras and groups the CPU test job uses (add ,coreml on macOS).
+# --torch-backend=cpu keeps this from pulling a CUDA build of PyTorch.
+uv pip install -e ".[train,augment,cli,visual,data]" --group tests --torch-backend=cpu
+
+# Docs or build work only, without the test extras
+uv sync --group docs       # Documentation dependencies only
+uv sync --group build      # Build tools only
+```
+
+Use `uv pip install` rather than `uv sync` for the test environment. It needs the `uv venv` step above, because unlike `uv sync` it does not create the environment itself. `uv sync` resolves a universal lock across every extra, which fails on extras that declare different Python floors, and `uv sync --all-extras` errors outright because some extras are declared as conflicting (for example `executorch` with `tflite` or `xla`, and `litert` with `tflite`). `--torch-backend` is also only available for `uv pip`.
+
+The test suite imports the training and augmentation dependencies, so installing dependency groups alone leaves a large number of tests erroring on import.
+
+**Important:** Re-run the install command after pulling changes to ensure your dependencies are up to date.
+
+### Optional Extras
+
+- `rfdetr[data]` installs the WebDataset streaming reader.
+- `rfdetr[train]` installs the minimal training loop dependencies and uses torchvision-native default augmentations.
+- `rfdetr[augment]` installs Albumentations (custom CPU `aug_config` dictionaries and built-in presets) and Kornia (GPU-side augmentation with `augmentation_backend="gpu"` or `"auto"`).
+
+### Running Tests
+
+> **CI Workflows as Source of Truth:** See `.github/workflows/ci-tests-cpu.yml` and `.github/workflows/ci-tests-gpu.yml` for the exact commands used in continuous integration.
+
+```bash
+# Run CPU tests (default for local development; mirrors CI)
+uv run --no-sync pytest src/ tests/ scripts/ -n 2 -m "not gpu and not coco17 and not integration and not xla and not tpu" --ignore=tests/run_smoke_all_models.py --ignore=tests/legacy/test_checkpoint_compat.py --cov=rfdetr --cov-report=xml --timeout=420 --durations=50
+
+# Run GPU tests (requires GPU; mirrors CI)
+uv run --no-sync pytest tests/ -m "gpu and not e2e_tensorrt" --ignore=tests/legacy/test_checkpoint_compat.py -n 3 --reruns 1 --only-rerun "OutOfMemoryError" --cov=rfdetr --cov-report=xml --timeout=600 --durations=20
+```
+
+The marker expressions exclude suites that need assets, optional integrations, or unavailable hardware: `coco17` needs the COCO dataset, `integration` covers tests owned by dedicated integration jobs, and `xla` / `tpu` need accelerators. Dropping them from the expression is what produces most local-only failures.
+
+The macOS CI leg adds `and not ddp` on top of that expression. `ddp` marks the tests that spawn real gloo worker processes; on macOS each one costs roughly 110 seconds under Python 3.13 against about 10 seconds elsewhere, which pushed that job past its 25-minute cap. macOS cannot run real distributed training anyway, so the Linux and Windows legs own that coverage. Local macOS runs keep the tests unless you exclude the marker yourself.
+
+**Development vs. PR Requirements:**
+
+- **During development:** Tests may fail as you work through TDD cycle (write failing test → implement → fix)
+- **Before opening PR:** Your final commit MUST have all tests passing
+- **Before each commit:** Run `pre-commit run --all-files` to ensure code quality
+
+### Building the Package
+
+```bash
+# Build source and wheel distributions
+uv build
+
+# Validate the build
+uv run twine check --strict dist/*
+```
+
+## Test-Driven Development
+
+We follow test-driven development practices to ensure code quality and prevent regressions.
+
+### For Bug Fixes
+
+1. **Write a test that replicates the issue** - The test should fail initially, demonstrating the bug
+2. **Commit the failing test** (optional during development, but commit message should note "WIP" or "test for issue #XXX")
+3. **Implement the fix** - Make the minimal change needed to make the test pass
+4. **Verify all tests pass** - Ensure your fix doesn't break existing functionality
+5. **Commit the fix** - This commit MUST have all tests passing before opening PR
+
+**Note:** It's acceptable to have failing tests in intermediate commits during development. However, your **final commit before opening a PR must have all tests passing**. This aligns with test-driven development: first create a failing test that proves the bug exists, then fix it.
+
+### For New Features
+
+1. **Write tests covering all major use cases** - Think about edge cases, invalid inputs, and expected behaviors
+2. **Implement the feature** - Build the feature to satisfy the test requirements
+3. **Refactor if needed** - Clean up the implementation while keeping tests green
+
+### Test Organization
+
+**Use test classes to group related tests:**
+
+```python
+import pytest
+
+
+class TestModelInference:
+    def test_single_image_inference(self):
+        # Test code
+        pass
+
+    def test_batch_inference(self):
+        # Test code
+        pass
+```
+
+**Use `pytest.mark.parametrize` to extend test cases:**
+
+Use `pytest.param(..., id="name")` (instead of a separate `ids` list) when a case passes a function, object, or compound setup as one parameterized item, when it needs a per-case pytest mark, or when the raw value would produce an unclear/empty ID (e.g., `""`). Use bare string, number, boolean, and `None` values otherwise; avoid parallel `ids` lists for simple types.
+
+```python
+import pytest
+
+
+@pytest.mark.parametrize(
+    "model_variant",
+    ["nano", "small", "medium"],
+)
+def test_model_loading(model_variant):
+    # Test code that runs for each model variant
+    pass
+```
+
+**Gate tests that need an optional dependency with a decorator, never `pytest.importorskip`:**
+
+Do not call `pytest.importorskip(...)`, and do not use `pytest.skip()` merely because an optional package is missing. Import the package's `_IS_<PACKAGE>_INSTALLED` flag from `rfdetr.export.imports` (export formats) or `rfdetr.utilities.imports` (everything else; add a new flag there rather than probing in the test file). A format whose exporter package guards its own import (`_IS_COREMLTOOLS_AVAILABLE`, `_IS_EXECUTORCH_AVAILABLE`, `_IS_ONNX2TF_AVAILABLE`, `_IS_POLYGRAPHY_AVAILABLE`) is gated on that flag instead, which skips a broken install rather than failing it. Build a named `skipif` decorator from the flag, and apply that decorator to the test or class (use `pytest.param(..., marks=...)` for parametrized cases; fixtures cannot carry `skipif`, so decorate their consumers). When every test in a module needs the package, a module-wide `pytestmark = <named skipif>` is fine. Give one meaning one decorator name: a gate shared by several modules lives in `tests/_markers.py`, and a name never means different packages in different files (`onnxruntime_only` gates ONNX Runtime alone, `onnx_and_onnxruntime_only` gates both). Import the optional package locally inside the test or helper that uses it. Helper doctests that need the package use `__doctest_requires__`.
+
+A flag proves that a package is installed, not that it imports. A broken install therefore fails with an error instead of a skip, which is intended: a silent skip would hide the very breakage the test exists to catch. Reserve in-body `pytest.skip()` for conditions that can only be determined at runtime, such as a transitive import that fails inside an installed package.
+
+```python
+import pytest
+
+from rfdetr.export.imports import _IS_ONNX_INSTALLED
+
+onnx_only = pytest.mark.skipif(not _IS_ONNX_INSTALLED, reason="onnx not installed")
+
+
+@onnx_only
+class TestOnnxGraph:
+    def test_saves_model(self, tmp_path):
+        import onnx  # local: the package is optional
+
+        ...
+```
+
+**Avoid multiple validation cases in a single test:**
+
+Do not write tests that loop through multiple cases internally. Instead, use `@pytest.mark.parametrize` so each case runs as a separate test:
+
+```python
+import pytest
+from rfdetr.assets.model_weights import ModelWeights
+
+
+# BAD: Multiple cases in one test - all assertions must pass for test to pass
+def test_all_models_have_valid_urls():
+    for model in ModelWeights:
+        assert model.url.startswith("http")  # Hard to identify which model failed
+
+
+# GOOD: Parametrized - each model is a separate test case
+@pytest.mark.parametrize(
+    "model",
+    [pytest.param(model, id=model.filename) for model in ModelWeights],
+)
+def test_all_models_have_valid_urls(model):
+    assert model.url.startswith("http")  # Clear which model failed
+```
+
+Benefits of parametrization:
+
+- Each case runs as an independent test (failures are isolated)
+- Test IDs clearly identify which case failed
+- Easier to debug and maintain
+- Better test reporting in CI
+
+**Mark GPU-required or computationally heavy tests:**
+
+```python
+import pytest
+
+
+@pytest.mark.gpu  # Use this marker for GPU-dependent or heavy tests (e.g., training)
+def test_model_training():
+    # Training test code
+    pass
+```
+
+Tests marked with `@pytest.mark.gpu` are excluded from CPU CI workflows and run separately on GPU infrastructure.
+
+**Use dedicated markers for integration-only CI jobs:**
+
+Mark tests that require an optional integration dependency with both the shared `@pytest.mark.integration` marker and a registered `e2e_<integration>` marker in `pyproject.toml`, named after the pip extra it needs (for example, `e2e_onnx` for the `[onnx]` extra). The dedicated workflow must select the specific marker (for example, `pytest -m e2e_onnx`) rather than a test-file path; generic CPU collection excludes only `integration`, keeping its marker expression short while dedicated jobs retain their precise contracts.
+
+### CI Testing
+
+> [!NOTE]
+>
+> **CI Workflows (Source of Truth):** See `.github/workflows/ci-tests-cpu.yml` and `.github/workflows/ci-tests-gpu.yml` for exact commands.
+
+Our continuous integration tests run on:
+
+- **Operating Systems:** Ubuntu, Windows, macOS
+- **Python Versions:** 3.10, 3.11, 3.12, 3.13, 3.14
+- **CPU Workflow:** `pytest -m "not gpu"` - Runs on Ubuntu for every Python version above, and on Windows and macOS for Python 3.10 and 3.13
+- **GPU Workflow:** `pytest -m gpu` - Runs separately on GPU infrastructure
+
+This ensures your changes work across all supported platforms and Python versions.
+
+**Legacy checkpoint compatibility is advisory only.** `ci-legacy-checkpoints.yml` is not among develop's required status checks (`Test docs build`, `pre-commit.ci - pr`, `testing-guardian`, and `Testing`). The required `Testing` job invokes pytest with `--ignore=tests/legacy/test_checkpoint_compat.py`, so it excludes legacy tests. Branch-protection required-check configuration is repo-admin config outside this PR's diff. This is a deliberate advisory-only tradeoff: a legacy-compatibility failure, including an intentional future checkpoint-format break, does not block merge.
+
+**Key GitHub Actions workflow files** (in `.github/workflows/`):
+
+- **ci-tests-cpu.yml** — CPU tests on Ubuntu across Python 3.10–3.14, plus Windows and macOS on Python 3.10 and 3.13
+- **ci-tests-gpu.yml** — GPU-dependent tests
+- **ci-legacy-checkpoints.yml** — Backward-compatibility checkpoint-loading tests across historical rfdetr releases (advisory only — not a required check; a compat break does not block merge)
+- **build-package.yml** — Build and validate distributions (`uv build` + `twine check`)
+- **ci-build-docs.yml** — Documentation build validation
+- **publish-docs.yml** — Deploy docs to GitHub Pages on release
+
+**Concurrency:** PRs cancel in-progress runs on new pushes.
+
+### Running Tests
+
+```bash
+# Run tests with parallel execution (recommended)
+uv run --no-sync pytest src/ tests/ scripts/ -n 2 -m "not gpu" --ignore=tests/run_smoke_all_models.py --ignore=tests/legacy/test_checkpoint_compat.py --timeout=240 --durations=50
+
+# Run a specific test file
+uv run --no-sync pytest tests/models/test_model.py
+
+# Run a specific test
+uv run --no-sync pytest tests/models/test_model.py::test_model_loading
+```
+
+## Code Quality and Linting
+
+All code must pass linting and formatting checks before being merged. We use **pre-commit hooks** to automate this process.
+
+> [!TIP]
+>
+> Pre-commit hooks will auto-format many issues. If pre-commit fails, review the changes it made and re-stage the files.
+
+### Setting Up Pre-commit
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install the git hooks
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+```
+
+**Configuration:** See `.pre-commit-config.yaml` for all hooks and `pyproject.toml` for tool-specific settings (e.g., `[tool.ruff]`).
+
+## Deprecation Policy
+
+RF-DETR uses [pyDeprecate](https://github.com/Borda/pyDeprecate) to emit structured deprecation warnings. Use `@deprecated` for functions and methods, `@deprecated_class` for classes. The importable package name is `deprecate` (not `pyDeprecate`); refer to its docs for advanced usage.
+
+```python
+from deprecate import deprecated
+
+
+@deprecated(target=new_fn, deprecated_in="1.10.0", remove_in="1.13.0")
+def old_fn(*args, **kwargs): ...
+```
+
+**Rules:**
+
+- All version strings must be full semver: `1.7.0`, not `1.7`.
+- Classify every deprecation when it is introduced:
+    - **Major-impact deprecations** — broad or incompatible public changes must remain until the next major release. For example, a symbol deprecated in `1.x` has `remove_in="2.0.0"`.
+    - **Minor deprecations** — routine API, argument, configuration, or rename migrations use a 0.3 release-cycle window. A symbol deprecated in `X.Y.0` has `remove_in="X.(Y+3).0"`; for example, `1.10.0` removes in `1.13.0`.
+- Every new deprecation needs an entry in `docs/getting-started/migration.md` under a `### Deprecated in vX.Y → Remove in vX.Z` subsection. State the tier when the removal target alone could be ambiguous.
+
+**Removal checklist** (when `remove_in` version arrives):
+
+1. Delete the deprecated symbol, class, or shim file.
+2. Remove any remaining `@deprecated` / `@deprecated_class` decorators.
+3. Add a breaking-change entry to `docs/getting-started/migration.md`.
+4. Search for lingering imports of the removed symbol and update them.
+5. Verify `pre-commit run --all-files` passes and tests are green.
+
+## Building Documentation
+
+RF-DETR's documentation is built with [MkDocs](https://www.mkdocs.org/) and the [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme. API reference pages are auto-generated from docstrings using [mkdocstrings](https://mkdocstrings.github.io/).
+
+> [!NOTE]
+>
+> Building the full documentation locally requires the `plus` extra (`rfdetr[plus]`), which provides the XLarge and 2XLarge model pages. Without it, the build will fail on those reference pages.
+
+### Install Documentation Dependencies
+
+```bash
+# Full docs build (matches CI — required for XLarge/2XLarge model pages)
+uv pip install -e ".[plus]" --group docs
+
+# Minimal install (skip plus models — XLarge/2XLarge pages will error)
+uv sync --group docs
+```
+
+### Serve Locally with Live Reload
+
+```bash
+uv run mkdocs serve
+```
+
+Open [http://localhost:8000](http://localhost:8000) in your browser. The server watches for file changes and reloads automatically — no restart needed as you edit documentation.
+
+### Build Static Site
+
+```bash
+# Build static documentation site to the site/ directory
+uv run mkdocs build
+```
+
+**Note:** `mkdocs.yaml` uses custom YAML tags (`!!python/name`). The `check-yaml` pre-commit hook runs with `--unsafe` to allow this — do not remove that flag.
+
+### Documentation Structure
+
+```
+docs/
+├── index.md              # Home page
+├── learn/                # How-to guides and tutorials
+│   ├── install.md
+│   ├── run/              # Detection and segmentation guides
+│   └── train/            # Training guides (parameters, augmentations, loggers, etc.)
+├── reference/            # Auto-generated API reference (from docstrings)
+├── tutorials/
+└── theme/                # Custom theme overrides
+mkdocs.yaml               # MkDocs configuration and navigation
+```
+
+> [!TIP]
+>
+> When adding a new documentation page, add it to the `nav` section in `mkdocs.yaml` so it appears in the site navigation. Pages that exist in `docs/` but are not listed in `nav` will not be included in the site.
+
+## CLA Signing
+
+In order to maintain the integrity of our project, every pull request must include a signed Contributor License Agreement (CLA). This confirms that your contributions are properly licensed under our Apache 2.0 License. After opening your pull request, simply add a comment stating:
+
+```
+I have read the CLA Document and I sign the CLA.
+```
+
+This step is essential before any merge can occur.
+
+## Google-Style Docstrings and Mandatory Type Hints
+
+For clarity and maintainability, any new functions or classes must include [Google-style docstrings](https://google.github.io/styleguide/pyguide.html) and use Python type hints. Type hints are mandatory in all function definitions, ensuring explicit parameter and return type declarations.
+
+Document constants with `#: explanation` immediately above the assignment, not standalone triple-quoted strings. Keep docstrings for modules, classes and functions.
+
+> [!IMPORTANT]
+>
+> Type hints are in the function signature. **Do not duplicate types in docstrings** - describe the parameter's purpose instead.
+
+For example:
+
+```python
+def sample_function(param1: int, param2: int = 10) -> bool:
+    """
+    Provides a brief description of function behavior.
+
+    Args:
+        param1: Explanation of the first parameter's purpose.
+        param2: Explanation of the second parameter, defaulting to 10.
+
+    Returns:
+        True if the operation succeeds, otherwise False.
+
+    Examples:
+        >>> sample_function(5, 10)
+        True
+    """
+    return param1 == param2
+```
+
+Following this pattern helps ensure consistency throughout the codebase.
+
+> [!IMPORTANT]
+>
+> This applies to helper functions inside `tests/` too, not just `src/`. Any non-`test_*` function used as a test fixture/builder (e.g. `_make_checkpoint`, `_random_xyxy_boxes`) needs a docstring with an `Examples` doctest that exercises it directly — a small, fast check that the helper still does what its callers assume. `pyproject.toml`'s `--doctest-plus` runs doctests across `tests/` for exactly this reason (see the comment above `[tool.pytest.ini_options]`). Skip the live doctest (`# doctest: +SKIP` with a one-line reason) only when the helper cannot run standalone — e.g. it is a `@pytest.fixture` (pytest now hard-fails on direct fixture calls) or needs real GPU/XLA/network hardware.
+
+## Reporting Bugs
+
+Bug reports are vital for continued improvement. When reporting an issue, please include a clear, minimal reproducible example that demonstrates the problem. Detailed bug reports assist us in swiftly diagnosing and addressing issues.
+
+## Adding a New Model
+
+> [!IMPORTANT]
+>
+> Before implementing a new model, **discuss with maintainers first**. Project structure and patterns are subject to change.
+
+**General workflow:**
+
+1. **Open an issue** describing the proposed model and approach
+    - You may ask maintainers to confirm the expected evaluation protocol (dataset, metrics) before running full benchmarks
+2. **Demonstrate improvement** versus reference models on a standard public dataset (e.g., COCO val2017)
+    - If the change is for an existing RF-DETR model, show a case where the new approach is Pareto optimal (e.g., better accuracy at similar or lower latency/model size) over the existing model
+    - If the change is adding a new functionality, show a case where the new approach is Pareto optimal over comparable third-party models (see the [README model table](../README.md) for reference baselines)
+    - Provide a script for us to reproduce your results
+3. **Wait for maintainer feedback** on architecture and integration approach
+4. **Follow test-driven development:**
+    - Write comprehensive tests for the new model
+    - Implement the model following approved approach
+    - Ensure all tests pass
+5. **Add documentation** as directed by maintainers
+6. **Submit PR** with reference to the discussion issue
+
+Maintainers will guide you on specific files to modify and patterns to follow based on current project architecture.
+
+## Security Considerations
+
+- **Write secure code:** Avoid injection vulnerabilities (XSS, SQL injection, command injection)
+- **Validate inputs:** Especially for file paths, URLs, and user-provided data
+- **No credentials:** Never commit API keys, tokens, or credentials to the repository
+- **Follow OWASP best practices** for any user-facing or network-facing code
+
+## License
+
+By contributing to RF-DETR, you agree that your contributions will be licensed under the Apache 2.0 License as specified in our [LICENSE](/LICENSE) file.
+
+Thank you for your commitment to making RF-DETR better. We look forward to your pull requests and continued collaboration. Happy coding!
+
+### License Headers
+
+All Python files must start with the following header:
+
+```python
+# ------------------------------------------------------------------------
+# RF-DETR
+# Copyright (c) 2025 Roboflow. All Rights Reserved.
+# Licensed under the Apache License, Version 2.0 [see LICENSE for details]
+# ------------------------------------------------------------------------
+```

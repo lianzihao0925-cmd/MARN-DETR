@@ -1,0 +1,49 @@
+Seed set to 42
+loading annotations into memory...
+Done (t=13.38s)
+creating index...
+index created!
+[2026-10-16 20:39:28] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 20:39:28] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 20:39:29] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+C2_DISABLED_FORWARD_LOSS_IDENTICAL
+C2_EMPTY_BANK_FORWARD_LOSS_IDENTICAL
+C2_NONEMPTY_ZERO_INIT_FORWARD_LOSS_IDENTICAL
+[2026-10-16 20:39:31] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 20:39:31] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 20:39:32] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/configuration_validator.py:70: You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/experiments/marn_c2/check_outputs exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:434: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=207` in the `DataLoader` to improve performance.
+C2_WINDOW {"batch_idx": 1, "epoch": 0, "global_step": 1, "backward_calls": 2, "bank_microbatches": 2}
+C2_COMMIT {"step": 1, "microbatches": 2, "unique_objects": 10, "matches": 260, "invalid": 0, "low_confidence": 0, "low_iou": 0, "duplicates": 250, "eligible": 260, "fill": 10, "update": 0, "replace": 0, "valid_slots": 10, "covered_classes": 4}
+C2_WINDOW {"batch_idx": 3, "epoch": 0, "global_step": 2, "backward_calls": 2, "bank_microbatches": 2}
+C2_COMMIT {"step": 2, "microbatches": 2, "unique_objects": 10, "matches": 260, "invalid": 0, "low_confidence": 14, "low_iou": 0, "duplicates": 236, "eligible": 246, "fill": 0, "update": 10, "replace": 0, "valid_slots": 10, "covered_classes": 4}
+C2_WINDOW {"batch_idx": 5, "epoch": 0, "global_step": 3, "backward_calls": 2, "bank_microbatches": 2}
+C2_COMMIT {"step": 3, "microbatches": 2, "unique_objects": 10, "matches": 260, "invalid": 0, "low_confidence": 4, "low_iou": 0, "duplicates": 246, "eligible": 256, "fill": 0, "update": 10, "replace": 0, "valid_slots": 10, "covered_classes": 4}
+C2_NATIVE_BOUNDARY_SAVED epoch=0 global_step=3
+C2_EVAL_BANK_FROZEN
+[2026-10-16 20:39:36] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 20:39:36] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 20:39:37] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+Restoring states from the checkpoint path at /root/autodl-tmp/project_marn-detr/experiments/marn_c2/check_outputs/c2_epoch_boundary.ckpt
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/call.py:283: Be aware that when using `ckpt_path`, callbacks used to create the checkpoint need to be provided during `Trainer` instantiation. Please add the following callbacks: ["ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"].
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Restored all states from the checkpoint at /root/autodl-tmp/project_marn-detr/experiments/marn_c2/check_outputs/c2_epoch_boundary.ckpt
+C2_RESTORE_STATE_OK
+C2_RESUME_FIRST_BATCH epoch=1 batch_idx=0
+C2_WINDOW {"batch_idx": 1, "epoch": 1, "global_step": 4, "backward_calls": 2, "bank_microbatches": 2}
+C2_COMMIT {"step": 4, "microbatches": 2, "unique_objects": 10, "matches": 260, "invalid": 0, "low_confidence": 0, "low_iou": 0, "duplicates": 250, "eligible": 260, "fill": 0, "update": 10, "replace": 0, "valid_slots": 10, "covered_classes": 4}
+`Trainer.fit` stopped: `max_epochs=2` reached.
+C2_INTEGRATION_CHECK_COMPLETED

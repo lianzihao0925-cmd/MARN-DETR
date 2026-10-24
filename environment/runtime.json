@@ -1,0 +1,6 @@
+{
+  "python": "3.11.17",
+  "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "original_interpreter": "/root/miniconda3/envs/marn-detr/bin/python",
+  "note": "Inventory only; editable rfdetr must be installed from this snapshot, not from an external wheel."
+}

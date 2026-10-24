@@ -1,0 +1,471 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: ["main", "release/*", "develop"]
+  pull_request:
+    branches: ["main", "release/*", "develop"]
+
+permissions:
+  contents: read
+
+env:
+  # UV_TORCH_BACKEND only works with 'uv pip' commands, not 'uv sync'.
+  # Used by 'uv pip install torch torchvision' step to install CPU-only PyTorch.
+  UV_TORCH_BACKEND: "cpu"
+
+jobs:
+  try-all-models:
+    runs-on: ${{ matrix.os }}
+    concurrency:
+      group: model-smoke-${{ matrix.os }}-${{ matrix.python-version }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.10", "3.13"]
+    timeout-minutes: 15
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          version: "0.9.26"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
+      - name: 🚀 Install Packages (plus extras)
+        timeout-minutes: 5
+        # Install PyTorch CPU-only first (UV_TORCH_BACKEND=cpu works with 'uv pip')
+        run: uv pip install -e .[plus]
+
+      - name: 🔎 Smoke-test model instantiation, downloads, and inference
+        run: python tests/run_smoke_all_models.py
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
+
+  export-parity:
+    # Unifies executorch/coreml/coreai/executorch-coreml/openvino/litert/onnx, which previously
+    # differed only in: os, python-version, an optional extra dependency-group
+    # (ci-executorch-pin), an optional extra to bolt on (`,coreml`, for the one delegate combo
+    # row), and (onnx alone) whether to collect coverage — now every row does, tagged by its own
+    # Codecov flag. `format` drives both the pytest marker
+    # (`-m e2e_<format>`) and the pip extra (`.[<format><extra_plus>,...]`) — every row installs
+    # and selects tests by that same name; MUST match a marker registered in pyproject.toml.
+    # `extra_plus` is empty for every row except the executorch+coreml delegate one. Every row
+    # runs the SAME test target (`tests/`, marker-selected) instead of each format's own file
+    # list/`.`, and the SAME job timeout, so a format silently drifting onto too-narrow a test
+    # path or a stricter deadline shows up as a matrix outlier instead of staying hidden in its
+    # own job block.
+    name: ${{ matrix.format }}${{ matrix.extra_plus }} parity (py${{ matrix.python-version }}, ${{ matrix.os || 'ubuntu-latest' }})
+    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
+    concurrency:
+      group: pytest-${{ matrix.format }}${{ matrix.extra_plus }}-${{ matrix.python-version }}-${{ matrix.os || 'ubuntu-latest' }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # openvino/litert/onnx: same os (ubuntu-latest, via the `|| 'ubuntu-latest'` fallback
+        # above — matrix.os is unset for these), same python-version bracket, no pin group, no
+        # extra_plus — a plain cross product. (onnx's pip extra and marker are both `onnx`,
+        # renamed from the old `e2e_onnxruntime` marker so it needs no special-casing here — see
+        # .github/CONTRIBUTING.md.) Every other format needs its own os/python-version bracket
+        # (or, for executorch, extra_group/extra_plus), so stays a fully-specified `include` row;
+        # none of their `format` values overlap this list, so each becomes its own standalone
+        # matrix combination rather than merging into one of these 6.
+        format: ["openvino", "litert", "onnx"]
+        python-version: ["3.10", "3.13"]
+        include:
+          # executorch: XNNPACK is plain-CPU, ubuntu-latest is sufficient. 3.10/3.13 bracket
+          # executorch 1.3.1's manylinux_2_28 cp310-cp313 wheel range.
+          - { format: "executorch", extra_group: "ci-executorch-pin", os: "ubuntu-latest", python-version: "3.10" }
+          - { format: "executorch", extra_group: "ci-executorch-pin", os: "ubuntu-latest", python-version: "3.13" }
+          # coreml: coremltools + the CoreML runtime are macOS-only. 3.10/3.13 bracket the
+          # coremltools 9.0 wheel range.
+          - { format: "coreml", os: "macos-latest", python-version: "3.10" }
+          - { format: "coreml", os: "macos-latest", python-version: "3.13" }
+          # coreai: needs the Core AI runtime of macOS 27 — xcode-27 is the only hosted image
+          # with it (arm64, public preview); this gates merges through export-priority-guardian.
+          # coreai-torch requires Python >= 3.11, so 3.11/3.13 bracket it (not 3.10).
+          - { format: "coreai", os: "xcode-27", python-version: "3.11" }
+          - { format: "coreai", os: "xcode-27", python-version: "3.13" }
+          # executorch+coreml delegate: needs macOS (CoreML delegate lowers through coremltools),
+          # single interpreter (3.13, executorch 1.3.1's wheel ceiling) — the plain executorch row
+          # above already brackets the Python range for the runtime itself. Reuses the
+          # `e2e_executorch` marker (no dedicated combo marker exists); `extra_plus: ",coreml"`
+          # is the only field that differs from that row.
+          - {
+              format: "executorch",
+              extra_plus: ",coreml",
+              extra_group: "ci-executorch-pin",
+              os: "macos-latest",
+              python-version: "3.13",
+            }
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          version: "0.9.26"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
+      - name: 🚀 Install Packages (${{ matrix.format }}${{ matrix.extra_plus }} extra)
+        if: ${{ !matrix.extra_group }}
+        timeout-minutes: 10
+        run: uv pip install -e ".[${{ matrix.format }}${{ matrix.extra_plus }},train,augment,cli,visual]" --group tests
+
+      - name: 🚀 Install Packages (${{ matrix.format }}${{ matrix.extra_plus }} extra, pinned)
+        if: matrix.extra_group
+        timeout-minutes: 10
+        # --group ci-executorch-pin (executorch rows only) locks torch and executorch to a pair
+        # whose C10 ABI matches (torch 2.12.x + executorch 1.3.1; see pyproject.toml for the
+        # empirically validated range and removal condition).
+        run: uv pip install -e ".[${{ matrix.format }}${{ matrix.extra_plus }},train,augment,cli,visual]" --group tests --group ${{ matrix.extra_group }}
+
+      # Guard against a silently-skipped parity test: each format's test class is gated by a
+      # skipif/importorskip on its runtime's availability, so a broken/missing wheel would skip
+      # it (false green) instead of failing red. The executorch+coreml delegate row runs both
+      # the executorch step (format matches) and the coremltools one (extra_plus is set).
+      - name: 🔎 Verify executorch runtime import
+        if: matrix.format == 'executorch'
+        run: |
+          from rfdetr.export._executorch import _IS_EXECUTORCH_AVAILABLE
+          from rfdetr.export._executorch.exporter import _check_executorch_available
+
+          _check_executorch_available(require_runtime=True)
+          assert _IS_EXECUTORCH_AVAILABLE, "executorch installed but not detected as available"
+          print("executorch runtime import OK")
+        shell: python
+
+      - name: 🔎 Verify coremltools import
+        if: matrix.format == 'coreml' || contains(matrix.extra_plus, 'coreml')
+        run: |
+          from rfdetr.export._coreml import _IS_COREMLTOOLS_AVAILABLE
+
+          assert _IS_COREMLTOOLS_AVAILABLE, "coremltools installed but not detected as available"
+          print("coremltools import OK")
+        shell: python
+
+      - name: 🔎 Verify the Core AI runtime
+        if: matrix.format == 'coreai'
+        run: |
+          import coreai.runtime as rt
+
+          from rfdetr.export._coreai import _IS_COREAI_TORCH_AVAILABLE
+
+          assert _IS_COREAI_TORCH_AVAILABLE, "coreai-torch installed but not detected as available"
+          print("Core AI compute units:", rt.ComputeUnitKind.available_kinds())
+        shell: python
+
+      - name: 🔎 Verify openvino import
+        if: matrix.format == 'openvino'
+        run: |
+          from rfdetr.export._openvino import _IS_OPENVINO_AVAILABLE
+
+          assert _IS_OPENVINO_AVAILABLE, "openvino installed but not detected as available"
+          print("openvino import OK")
+        shell: python
+
+      - name: 🔎 Verify litert-torch import
+        if: matrix.format == 'litert'
+        run: |
+          from rfdetr.export._litert.exporter import _check_litert_available
+
+          _check_litert_available()
+          print("litert-torch import OK")
+        shell: python
+
+      - name: 🔎 Verify onnx and onnxruntime imports
+        if: matrix.format == 'onnx'
+        run: |
+          import onnx
+          import onnxruntime
+
+          print(f"onnx {onnx.__version__} (IR {onnx.IR_VERSION}) / onnxruntime {onnxruntime.__version__} import OK")
+        shell: python
+
+      # Real export/convert + load/inference per format is heavy; single-worker. Target is
+      # always tests/, selection is always by marker (never a format-specific file list or
+      # `.`) — see the job-level comment above for why. Every row collects coverage; flags
+      # tag it by format/os/python so Codecov keeps each row's contribution distinct.
+      - name: 🧪 Run ${{ matrix.format }} end-to-end parity tests
+        run: |
+          uv run --no-sync pytest tests/ -m "e2e_${{ matrix.format }}" -n 1 \
+            --cov=rfdetr --cov-report=xml \
+            --timeout=600 \
+            --durations=20
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: "coverage.xml"
+          flags: integration,${{ matrix.format }},${{ runner.os }},py${{ matrix.python-version }}
+          env_vars: OS,PYTHON
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Minimize uv cache
+        continue-on-error: true
+        run: uv cache prune --ci
+
+  tensorrt-parity:
+    name: TensorRT parity
+    # TensorRT engine build + runtime inference need a real GPU + CUDA driver, so unlike the CPU
+    # integration jobs this runs on the self-hosted GPU runner (same as ci-tests-gpu.yml).
+    runs-on: Roboflow-GPU-VM-Runner
+    # The INT8 end-to-end tests build eight more engines: the job took about 9 minutes before them, 18.5 with them.
+    timeout-minutes: 35
+    concurrency:
+      group: pytest-tensorrt-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    env:
+      # UV_TORCH_BACKEND=auto (GPU) works only with uv pip, not uv sync; overrides the workflow-level
+      # "cpu" default which is wrong for this GPU job.
+      UV_TORCH_BACKEND: "auto"
+    steps:
+      - name: 🖥️ Print GPU information
+        run: nvidia-smi
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: 🐍 Install uv and set Python version
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          version: "0.9.26"
+          python-version: "3.12"
+          activate-environment: true
+
+      - name: 🚀 Install Packages (tensorrt + onnx extras)
+        timeout-minutes: 8
+        # [tensorrt] provides tensorrt/polygraphy for the engine build; [onnx] provides the ONNX
+        # export toolchain (the e2e exports RFDETRNano to ONNX first).
+        run: uv pip install -e ".[tensorrt,onnx,train,augment,cli,visual]" --group tests
+
+      - name: 🔎 Verify tensorrt import
+        # Guard against a silently-skipped parity test: TestTensorRTEndToEnd is gated by a skipif on
+        # tensorrt availability, so a broken/missing wheel would skip it (false green) instead of failing red.
+        run: |
+          from rfdetr.export._tensorrt.exporter import _IS_TENSORRT_AVAILABLE
+
+          assert _IS_TENSORRT_AVAILABLE, "tensorrt/polygraphy installed but not detected as available"
+          print("tensorrt import OK")
+        shell: python
+
+      - name: 🔎 Verify TensorRT major is 11 or newer
+        # The [tensorrt] extra floats at tensorrt>=8.6.1, but the host-code refusal parity test only runs on TensorRT 11+.
+        # An older resolution would skip it (false green), so fail red instead.
+        run: |
+          import tensorrt
+
+          major = int(tensorrt.__version__.split(".")[0])
+          assert major >= 11, f"TensorRT {tensorrt.__version__} resolved; the TensorRT job needs 11 or newer"
+          print(f"TensorRT {tensorrt.__version__} OK")
+        shell: python
+
+      - name: 🔎 Resolve the TensorRT lean runtime spec
+        # trt_version_compatible=True builds against TensorRT's lean runtime, a separate wheel the [tensorrt] extra does
+        # not install. Match the installed TensorRT's CUDA suffix and release; the lean wheel may add a .post suffix.
+        # The spec goes to the job env, so the install step is a plain shell command.
+        run: |
+          import importlib.metadata
+          import os
+          import re
+
+          names = {dist.metadata["Name"] or "" for dist in importlib.metadata.distributions()}
+          libs = sorted(name for name in names if re.fullmatch(r"tensorrt[-_]cu\d+[-_]libs", name))
+          assert len(libs) == 1, f"expected one tensorrt-cu*-libs distribution, found {libs}"
+          suffix = re.fullmatch(r"tensorrt[-_](cu\d+)[-_]libs", libs[0]).group(1)
+          release = re.match(r"\d+(\.\d+)*", importlib.metadata.version(libs[0])).group()
+          spec = f"tensorrt-lean-{suffix}-libs=={release}.*"
+          print(f"lean runtime spec: {spec}")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"TENSORRT_LEAN_SPEC={spec}\n")
+        shell: python
+
+      - name: 📦 Install the TensorRT lean runtime
+        timeout-minutes: 5
+        run: uv pip install "${TENSORRT_LEAN_SPEC}"
+        shell: bash
+
+      - name: 🔎 Verify the lean runtime loads
+        # Same guard as the tensorrt import above: without the lean runtime the version-compatible parity tests skip
+        # (false green) instead of failing red.
+        run: |
+          from rfdetr.export._tensorrt.exporter import TensorRTConfig, TensorRTExporter
+
+          TensorRTExporter(TensorRTConfig(version_compatible=True)).check_environment()
+          print("lean runtime OK")
+        shell: python
+
+      - name: 🔗 Expose CUDA runtime (libcudart.so) to the loader
+        # The engine build succeeds, but polygraphy's TrtRunner separately dlopen's the *unversioned*
+        # `libcudart.so` for CUDA stream management. The GPU wheels ship it only as `libcudart.so.12`
+        # (e.g. under torch/lib), which the dynamic loader does not resolve by bare name — hence
+        # `OSError: libcudart.so: cannot open shared object file` at runtime. Symlink the versioned
+        # library to `libcudart.so` in a job-local dir and prepend it to LD_LIBRARY_PATH.
+        run: |
+          import glob
+          import os
+          import pathlib
+          import site
+
+          roots = list(site.getsitepackages())
+          venv = os.environ.get("VIRTUAL_ENV")
+          if venv:
+              roots.append(os.path.join(venv, "lib"))
+          candidates = []
+          for root in roots:
+              candidates += glob.glob(os.path.join(root, "**", "libcudart.so*"), recursive=True)
+          candidates += glob.glob("/usr/local/cuda*/lib64/libcudart.so*")
+          candidates = sorted({c for c in candidates if os.path.exists(c)}, key=len)
+          assert candidates, "libcudart.so* not found in installed wheels or system CUDA"
+          source = candidates[0]
+
+          lib_dir = pathlib.Path(os.environ["RUNNER_TEMP"]) / "cudalibs"
+          lib_dir.mkdir(parents=True, exist_ok=True)
+          link = lib_dir / "libcudart.so"
+          if link.is_symlink() or link.exists():
+              link.unlink()
+          link.symlink_to(source)
+          print(f"linked {link} -> {source}")
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              env_file.write(f"LD_LIBRARY_PATH={lib_dir}{os.pathsep}{os.environ.get('LD_LIBRARY_PATH', '')}\n")
+        shell: python
+
+      - name: 🧪 Run TensorRT end-to-end parity tests
+        # Real ONNX->engine build + GPU inference is heavy; single-worker, opt-in marker (see pyproject.toml
+        # `e2e_tensorrt`) — excluded from the ci-tests-gpu.yml default filter (`and not e2e_tensorrt`) so it
+        # only runs here. Selected by marker over tests/, so TestInt8EndToEnd (test_tensorrt_int8.py) runs too.
+        run: |
+          uv run --no-sync pytest tests/ \
+            -m e2e_tensorrt -n 1 \
+            --timeout=600 \
+            --durations=20 \
+            -rs \
+            --junitxml="${RUNNER_TEMP}/tensorrt-e2e.xml"
+
+      - name: 🔎 Fail on unexpected skips
+        # A skipped parity test is a false green. The only skip this runner may produce is the AMPERE_PLUS one: the T4
+        # runner is compute capability 7.5, below the 8.0 that level needs. Anything else (a missing lean runtime, no
+        # HardwareCompatibilityLevel member, a TensorRT too old for the host-code refusal) means coverage silently
+        # vanished, so fail red. Cross-GPU and cross-release engine loading is not CI-verified: this job builds and
+        # loads on one GPU with one TensorRT release.
+        run: |
+          import os
+          import xml.etree.ElementTree as ET
+
+          allowed_prefixes = (
+              "AMPERE_PLUS engines need compute capability 8.0 or newer",
+              "needs two CUDA devices",  # the second-device inference test; one-GPU runners cannot run it
+          )
+          tree = ET.parse(os.path.join(os.environ["RUNNER_TEMP"], "tensorrt-e2e.xml"))
+          unexpected = []
+          for case in tree.iter("testcase"):
+              for skipped in case.iter("skipped"):
+                  message = skipped.get("message") or ""
+                  if not message.startswith(allowed_prefixes):
+                      unexpected.append(f"{case.get('classname')}::{case.get('name')}: {message}")
+          assert not unexpected, "non-whitelisted skips in the TensorRT job:\n" + "\n".join(unexpected)
+          print("no unexpected skips")
+        shell: python
+
+      - name: Minimize uv cache
+        continue-on-error: true
+        run: uv cache prune --ci
+
+  roboflow-deploy-e2e:
+    name: Roboflow deploy e2e
+    runs-on: ubuntu-latest
+    # deploy_to_roboflow() delegates the actual upload to a swallow-and-print try/except deep in
+    # the roboflow SDK (see tests/export/test_roboflow_deploy_e2e.py module docstring), so a failed
+    # server-side upload is otherwise indistinguishable from success. This job generates a fresh
+    # dataset version, deploys against a real Roboflow workspace/project (version auto-resolved to
+    # that fresh latest), and independently polls that version's trained-model status.
+    # Live external service + real account state: advisory only, not a required check (mirrors
+    # ci-legacy-checkpoints.yml). Restricted to the upstream repo — forks never have the secret, so
+    # running there would just burn CI minutes on a guaranteed skip.
+    if: >-
+      github.repository == 'roboflow/rf-detr' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    concurrency:
+      # Repo-wide group, not per-ref: two parallel runs against the same Roboflow project race —
+      # each generates its own fresh version, so run A's auto-latest deploy can land on run B's
+      # newer version while A polls its own, guaranteeing a 300s timeout false-negative. Queue
+      # instead (and never cancel mid-upload, which would strand a half-deployed version).
+      group: roboflow-deploy-e2e
+      cancel-in-progress: false
+    timeout-minutes: 20
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: 🐍 Install uv and set Python version
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          version: "0.9.26"
+          python-version: "3.13"
+          activate-environment: true
+
+      - name: 🚀 Install Packages (train extra, for the roboflow SDK)
+        timeout-minutes: 5
+        run: uv pip install -e ".[train]" --group tests
+
+      - name: 🔑 Verify required secrets are present
+        run: |
+          missing=()
+          [[ -z "${{ secrets.ROBOFLOW_API_KEY }}" ]]        && missing+=(ROBOFLOW_API_KEY)
+          [[ -z "${{ secrets.ROBOFLOW_TEST_WORKSPACE }}" ]] && missing+=(ROBOFLOW_TEST_WORKSPACE)
+          [[ -z "${{ secrets.ROBOFLOW_TEST_PROJECT }}" ]]   && missing+=(ROBOFLOW_TEST_PROJECT)
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Required secrets are not set: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: 🔎 Deploy a real model and poll for trained status
+        env:
+          ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
+          ROBOFLOW_TEST_WORKSPACE: ${{ secrets.ROBOFLOW_TEST_WORKSPACE }}
+          ROBOFLOW_TEST_PROJECT: ${{ secrets.ROBOFLOW_TEST_PROJECT }}
+        run: |
+          uv run --no-sync pytest tests/ -m e2e_roboflow -n 1 \
+            --timeout=600 \
+            --durations=20
+
+      - name: Minimize uv cache
+        continue-on-error: true
+        run: uv cache prune --ci
+
+  export-priority-guardian:
+    runs-on: ubuntu-latest
+    # export-parity is a single matrix job now (13 format/os/python rows, see above); GitHub sets
+    # its overall `result` to failure if any row fails regardless of fail-fast, so one need covers
+    # all 13 — the per-row breakdown lives in the Actions UI (each row's own check run), not here.
+    needs: [export-parity, tensorrt-parity]
+    if: always()
+    steps:
+      - name: 📋 Display export job results
+        run: |
+          echo "export-parity:   ${{ needs.export-parity.result }}"
+          echo "tensorrt-parity: ${{ needs.tensorrt-parity.result }}"
+      # Fail explicitly on any non-success result (failure, cancelled, or skipped) instead of
+      # relying on timeout behavior, so a cancelled or skipped export job still blocks the gate.
+      - name: ❌ Fail guardian unless every export job succeeded
+        if: >-
+          needs.export-parity.result != 'success' ||
+          needs.tensorrt-parity.result != 'success'
+        run: |
+          echo "One or more export jobs did not succeed; failing explicitly."
+          exit 1
+      - name: ✅ all export jobs succeeded
+        run: echo "All export jobs (export-parity matrix - executorch, coreml, coreai, executorch+coreml, openvino, litert, onnx; plus tensorrt) completed successfully."

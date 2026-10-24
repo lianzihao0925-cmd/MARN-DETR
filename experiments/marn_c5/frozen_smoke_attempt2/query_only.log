@@ -1,0 +1,121 @@
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 19:24:56] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=13.22s)
+creating index...
+index created!
+[2026-10-17 19:25:10] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+[2026-10-17 19:25:10] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 19:25:10] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+loading annotations into memory...
+Done (t=0.37s)
+creating index...
+index created!
+[2026-10-17 19:25:11] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/lightning_fabric/loggers/csv_logs.py:268: Experiment logs directory /root/autodl-tmp/project_marn-detr/experiments/marn_c5/frozen_smoke/query_only/ exists and is not empty. Previous log files in this directory will be deleted when the new ones are saved!
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/experiments/marn_c5/frozen_smoke/query_only exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/fit_loop.py:321: The number of training batches (4) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+Seed set to 42
+Traceback (most recent call last):
+  File "/root/autodl-tmp/project_marn-detr/experiments/marn_c5/run_frozen_arm.py", line 162, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/root/autodl-tmp/project_marn-detr/experiments/marn_c5/run_frozen_arm.py", line 126, in main
+    trainer.fit(model,datamodule=dm)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/trainer.py", line 584, in fit
+    call._call_and_handle_interrupt(
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/call.py", line 49, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/trainer.py", line 630, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path, weights_only=weights_only)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/trainer.py", line 1079, in _run
+    results = self._run_stage()
+              ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/trainer.py", line 1123, in _run_stage
+    self.fit_loop.run()
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/fit_loop.py", line 217, in run
+    self.advance()
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/fit_loop.py", line 469, in advance
+    self.epoch_loop.run(self._data_fetcher)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 153, in run
+    self.advance(data_fetcher)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 352, in advance
+    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 192, in run
+    self._optimizer_step(batch_idx, closure)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 270, in _optimizer_step
+    call._call_lightning_module_hook(
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/call.py", line 177, in _call_lightning_module_hook
+    output = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/marn/integration.py", line 275, in optimizer_step
+    result = super().optimizer_step(epoch, batch_idx, optimizer, optimizer_closure)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/core/module.py", line 1368, in optimizer_step
+    optimizer.step(closure=optimizer_closure)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/core/optimizer.py", line 154, in step
+    step_output = self._strategy.optimizer_step(self._optimizer, closure, **kwargs)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/strategies/strategy.py", line 239, in optimizer_step
+    return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/plugins/precision/amp.py", line 76, in optimizer_step
+    return super().optimizer_step(optimizer, model=model, closure=closure, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/plugins/precision/precision.py", line 123, in optimizer_step
+    return optimizer.step(closure=closure, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/optim/lr_scheduler.py", line 124, in wrapper
+    return func.__get__(opt, opt.__class__)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/optim/optimizer.py", line 485, in wrapper
+    out = func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/optim/optimizer.py", line 79, in _use_grad
+    ret = func(self, *args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/optim/adam.py", line 225, in step
+    loss = closure()
+           ^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/plugins/precision/precision.py", line 109, in _wrap_closure
+    closure_result = closure()
+                     ^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 146, in __call__
+    self._result = self.closure(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 140, in closure
+    self._backward_fn(step_output.closure_loss)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 241, in backward_fn
+    call._call_strategy_hook(self.trainer, "backward", loss, optimizer)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/trainer/call.py", line 329, in _call_strategy_hook
+    output = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/strategies/strategy.py", line 213, in backward
+    self.precision_plugin.backward(closure_loss, self.lightning_module, optimizer, *args, **kwargs)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/plugins/precision/precision.py", line 73, in backward
+    model.backward(tensor, *args, **kwargs)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/core/module.py", line 1137, in backward
+    loss.backward(*args, **kwargs)
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/_tensor.py", line 648, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/autograd/__init__.py", line 353, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torch/autograd/graph.py", line 824, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn

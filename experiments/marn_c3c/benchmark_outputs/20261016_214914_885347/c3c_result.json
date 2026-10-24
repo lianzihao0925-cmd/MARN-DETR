@@ -1,0 +1,188 @@
+{
+  "measurements_completed": true,
+  "stage": "complete",
+  "runs": [
+    {
+      "mode": "baseline",
+      "repetition": 1,
+      "warmup_batches": 10,
+      "measured_batches": 50,
+      "images": 800,
+      "seconds": 7.323541030287743,
+      "images_per_second": 109.23677449084599,
+      "all_losses_finite": true,
+      "optimizer_fused": true,
+      "peak_allocated_GiB": 8.77770471572876,
+      "peak_reserved_GiB": 10.16015625,
+      "seed": 42,
+      "target_sha256": "d1ab867a4c59b38157ae1e03000c9ea336ef4bb402848b0c95f2f23c2c2ff4e0",
+      "first_two_warmup_images_sha256": "6865255e0baa800435310587468936b20e6e541c3b58a67bf06b986aec513651"
+    },
+    {
+      "mode": "marn",
+      "repetition": 1,
+      "warmup_batches": 10,
+      "measured_batches": 50,
+      "images": 800,
+      "seconds": 10.655508410185575,
+      "images_per_second": 75.07853864910678,
+      "all_losses_finite": true,
+      "optimizer_fused": true,
+      "peak_allocated_GiB": 8.866164207458496,
+      "peak_reserved_GiB": 10.1640625,
+      "bank_at_measurement_start": {
+        "valid_slots": 243,
+        "total_slots": 320,
+        "covered_classes": 70,
+        "committed_step": 10
+      },
+      "bank_at_measurement_end": {
+        "valid_slots": 313,
+        "total_slots": 320,
+        "covered_classes": 79,
+        "committed_step": 60
+      },
+      "accepted_queries": 312000,
+      "selected_queries": 312000,
+      "unique_object_writes": 3963,
+      "seed": 42,
+      "target_sha256": "d1ab867a4c59b38157ae1e03000c9ea336ef4bb402848b0c95f2f23c2c2ff4e0",
+      "first_two_warmup_images_sha256": "6865255e0baa800435310587468936b20e6e541c3b58a67bf06b986aec513651"
+    },
+    {
+      "mode": "marn",
+      "repetition": 2,
+      "warmup_batches": 10,
+      "measured_batches": 50,
+      "images": 800,
+      "seconds": 10.615661386400461,
+      "images_per_second": 75.360353997808,
+      "all_losses_finite": true,
+      "optimizer_fused": true,
+      "peak_allocated_GiB": 8.866299152374268,
+      "peak_reserved_GiB": 10.1640625,
+      "bank_at_measurement_start": {
+        "valid_slots": 252,
+        "total_slots": 320,
+        "covered_classes": 73,
+        "committed_step": 10
+      },
+      "bank_at_measurement_end": {
+        "valid_slots": 312,
+        "total_slots": 320,
+        "covered_classes": 78,
+        "committed_step": 60
+      },
+      "accepted_queries": 311999,
+      "selected_queries": 312000,
+      "unique_object_writes": 4322,
+      "seed": 43,
+      "target_sha256": "7bbfe827a491d43bf3ca81970cb5cd7362b48223177293211ad7cbf1cbc98b60",
+      "first_two_warmup_images_sha256": "c65732ef3bc136114e484da091218aa56773df7316c34e696706db2c853d472b"
+    },
+    {
+      "mode": "baseline",
+      "repetition": 2,
+      "warmup_batches": 10,
+      "measured_batches": 50,
+      "images": 800,
+      "seconds": 7.240454290062189,
+      "images_per_second": 110.49030460671946,
+      "all_losses_finite": true,
+      "optimizer_fused": true,
+      "peak_allocated_GiB": 8.778013229370117,
+      "peak_reserved_GiB": 10.16015625,
+      "seed": 43,
+      "target_sha256": "7bbfe827a491d43bf3ca81970cb5cd7362b48223177293211ad7cbf1cbc98b60",
+      "first_two_warmup_images_sha256": "c65732ef3bc136114e484da091218aa56773df7316c34e696706db2c853d472b"
+    },
+    {
+      "mode": "baseline",
+      "repetition": 3,
+      "warmup_batches": 10,
+      "measured_batches": 50,
+      "images": 800,
+      "seconds": 7.44450493529439,
+      "images_per_second": 107.46181337152467,
+      "all_losses_finite": true,
+      "optimizer_fused": true,
+      "peak_allocated_GiB": 8.777938842773438,
+      "peak_reserved_GiB": 10.16015625,
+      "seed": 44,
+      "target_sha256": "92776ffcade4a27f79c80b63b6b6ee9d1aed22b096452c88e522bfc12c8917bb",
+      "first_two_warmup_images_sha256": "2c0f401fd2d61b5c13114ae7ebc1a4f42c1fb7afab1437da411fc0de6a180a02"
+    },
+    {
+      "mode": "marn",
+      "repetition": 3,
+      "warmup_batches": 10,
+      "measured_batches": 50,
+      "images": 800,
+      "seconds": 10.402331180870533,
+      "images_per_second": 76.9058383250831,
+      "all_losses_finite": true,
+      "optimizer_fused": true,
+      "peak_allocated_GiB": 8.866137504577637,
+      "peak_reserved_GiB": 10.1640625,
+      "bank_at_measurement_start": {
+        "valid_slots": 257,
+        "total_slots": 320,
+        "covered_classes": 74,
+        "committed_step": 10
+      },
+      "bank_at_measurement_end": {
+        "valid_slots": 312,
+        "total_slots": 320,
+        "covered_classes": 80,
+        "committed_step": 60
+      },
+      "accepted_queries": 312000,
+      "selected_queries": 312000,
+      "unique_object_writes": 4003,
+      "seed": 44,
+      "target_sha256": "92776ffcade4a27f79c80b63b6b6ee9d1aed22b096452c88e522bfc12c8917bb",
+      "first_two_warmup_images_sha256": "2c0f401fd2d61b5c13114ae7ebc1a4f42c1fb7afab1437da411fc0de6a180a02"
+    }
+  ],
+  "scope": "training only: data loading/transfer, forward, matching/loss, backward, optimizer, bank, EMA",
+  "environment": {
+    "python": "3.11.17 (main, Oct  1 2026, 20:17:42) [GCC 14.3.0]",
+    "torch": "2.7.1+cu128",
+    "lightning": "2.6.6",
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "total_gpu_GiB": 31.356689453125
+  },
+  "summary": {
+    "baseline": {
+      "repetitions": 3,
+      "images_per_second": [
+        109.23677449084599,
+        110.49030460671946,
+        107.46181337152467
+      ],
+      "mean_images_per_second": 109.06296415636338,
+      "sample_standard_deviation": 1.5217086825975064,
+      "target_images_per_second": 100.0,
+      "mean_meets_target": true,
+      "peak_allocated_GiB": 8.778013229370117,
+      "training_only_epoch_minutes_estimate": 18.076408264864124
+    },
+    "marn": {
+      "repetitions": 3,
+      "images_per_second": [
+        75.07853864910678,
+        75.360353997808,
+        76.9058383250831
+      ],
+      "mean_images_per_second": 75.78157699066595,
+      "sample_standard_deviation": 0.9837823101377408,
+      "target_images_per_second": 80.0,
+      "mean_meets_target": false,
+      "peak_allocated_GiB": 8.866299152374268,
+      "training_only_epoch_minutes_estimate": 26.015117987179035
+    },
+    "marn_speed_fraction_of_baseline": 0.6948424479094301
+  },
+  "total_wall_seconds": 121.97761314362288
+}

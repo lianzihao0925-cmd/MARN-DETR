@@ -1,0 +1,58 @@
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 19:49:16] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=12.58s)
+creating index...
+index created!
+[2026-10-17 19:49:30] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+[2026-10-17 19:49:30] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 19:49:30] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+loading annotations into memory...
+Done (t=0.36s)
+creating index...
+index created!
+[2026-10-17 19:49:31] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/lightning_fabric/loggers/csv_logs.py:268: Experiment logs directory /root/autodl-tmp/project_marn-detr/experiments/marn_c5/frozen_screen/marn/ exists and is not empty. Previous log files in this directory will be deleted when the new ones are saved!
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/experiments/marn_c5/frozen_screen/marn exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 42
+TRAIN_PROGRESS {"epoch": 1, "batches": 1000, "global_step": 1000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 2000, "global_step": 2000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 3000, "global_step": 3000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 4000, "global_step": 4000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 5000, "global_step": 5000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 6000, "global_step": 6000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 7000, "global_step": 7000}
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+               Val [1m([0mEpoch [1;36m1[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5292[0m │ [1;36m0.7203[0m │ [1;36m0.5705[0m │ [1;36m0.7040[0m │ [1;36m0.6977[0m │ [1;36m0.7681[0m │ [1;36m0.6484[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 1, "global_step": 7393, "batches": 7393, "all_losses_finite": true, "before_checkpoint_seconds": 1129.973863184452, "peak_allocated_GiB": 2.6778011322021484, "peak_reserved_GiB": 3.767578125, "learning_rates": [6.957027119580327e-05], "bank": {"step": 7393, "microbatches": 1, "unique_objects": 65, "matches": 1365, "invalid": 0, "low_confidence": 457, "low_iou": 110, "duplicates": 733, "eligible": 798, "fill": 0, "update": 4, "replace": 61, "valid_slots": 320, "covered_classes": 80}}
+[2026-10-17 20:08:28] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 20:08:28] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 20:08:29] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 20:08:29] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 20:08:32] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 20:08:32] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 20:08:32] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 20:08:32] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+MECHANISM_ARM_COMPLETED marn

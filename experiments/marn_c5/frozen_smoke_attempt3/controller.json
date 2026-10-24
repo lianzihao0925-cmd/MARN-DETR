@@ -1,0 +1,29 @@
+{
+  "passed": false,
+  "started_unix": 1792236568.4335413,
+  "hard_stop_unix": 1792237168.4335413,
+  "scope": "frozen official detector; adapter-only single seed three-arm pilot",
+  "arms": [
+    {
+      "kind": "query_only",
+      "pid": 248492,
+      "started_unix": 1792236568.4344637,
+      "exit_code": 0,
+      "seconds": 43.777700424194336
+    },
+    {
+      "kind": "marn",
+      "pid": 248730,
+      "started_unix": 1792236612.214107,
+      "exit_code": 0,
+      "seconds": 42.92689561843872
+    },
+    {
+      "kind": "supervised",
+      "pid": 248957,
+      "started_unix": 1792236655.1430483,
+      "exit_code": 1,
+      "seconds": 33.41222548484802
+    }
+  ]
+}

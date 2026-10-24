@@ -1,0 +1,6 @@
+{
+  "branch": "marn-detr-dev",
+  "head": "eca736acab9f6fe93f2cbc82a1d9f6edfb53f0ea",
+  "status": "M src/rfdetr/datasets/coco.py\n M src/rfdetr/models/criterion.py\n M src/rfdetr/models/lwdetr.py\n M src/rfdetr/models/transformer.py\n?? src/rfdetr/marn/",
+  "upstream_url": "git@github.com:roboflow/rf-detr.git"
+}

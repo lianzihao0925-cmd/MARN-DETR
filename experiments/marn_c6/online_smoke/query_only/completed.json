@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "kind": "query_only",
+  "seed": 42,
+  "global_step": 6,
+  "wall_seconds": 12.30754091590643,
+  "supervision_examples": 0,
+  "probe_examples": 0,
+  "probe_batches": 0,
+  "probe_seconds": 0.0,
+  "null_verified": false,
+  "key_gradient": true,
+  "out_gradient": true,
+  "router_gradient": false,
+  "native_checkpoint_strict": true,
+  "inference_export_strict": true,
+  "regular": {
+    "AP": 0.6344062685966492,
+    "AP50": 0.7846869230270386,
+    "AP75": 0.7041687965393066,
+    "APs": 0.3369402587413788,
+    "APm": 0.6847041845321655,
+    "APl": 0.8520597219467163,
+    "AR100": 0.7098511457443237
+  },
+  "ema": {
+    "AP": 0.6329324245452881,
+    "AP50": 0.7840333580970764,
+    "AP75": 0.703998863697052,
+    "APs": 0.3377186059951782,
+    "APm": 0.6812103390693665,
+    "APl": 0.8528661131858826,
+    "AR100": 0.7057974338531494
+  }
+}

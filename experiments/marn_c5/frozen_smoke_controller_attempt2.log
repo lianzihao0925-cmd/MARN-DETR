@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/root/autodl-tmp/project_marn-detr/experiments/marn_c5/run_frozen_pair.py", line 42, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/root/autodl-tmp/project_marn-detr/experiments/marn_c5/run_frozen_pair.py", line 31, in main
+    if code:raise RuntimeError(f'{kind} failed: {code}')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: query_only failed: 1

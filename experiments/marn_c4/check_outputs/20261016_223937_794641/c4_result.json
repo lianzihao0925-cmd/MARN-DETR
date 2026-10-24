@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "stage": "complete",
+  "scope": "engineering only; synthetic plateau scores are not research AP",
+  "plateau_checkpoint_positions": {
+    "best_regular": {
+      "epoch": 0,
+      "global_step": 1,
+      "bytes": 516012261
+    },
+    "best_ema": {
+      "epoch": 0,
+      "global_step": 1,
+      "bytes": 516012389
+    },
+    "last": {
+      "epoch": 2,
+      "global_step": 3,
+      "bytes": 516689671
+    }
+  },
+  "inference_exports": "strict exact states passed",
+  "resume": "epoch 3 batch 0, two microbatches, global step 4 passed",
+  "full_coco": {
+    "images": 5000,
+    "metrics": {
+      "AP": 0.5292240381240845,
+      "AP50": 0.7202571034431458,
+      "AP75": 0.5704635381698608,
+      "APs": 0.24371647834777832,
+      "APm": 0.5090212821960449,
+      "APl": 0.7192354202270508,
+      "AR100": 0.7039456367492676
+    },
+    "frozen_bank": true,
+    "seconds": 19.93306852132082,
+    "identity_initialization": true
+  },
+  "total_seconds": 67.42975789308548
+}

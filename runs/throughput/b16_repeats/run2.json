@@ -1,0 +1,28 @@
+{
+  "physical_batch": 16,
+  "accumulation": 1,
+  "effective_batch": 16,
+  "batches_completed": 400,
+  "windows": [
+    {
+      "images": 1600,
+      "seconds": 14.567535940557718,
+      "images_per_second": 109.83326257293888
+    },
+    {
+      "images": 1600,
+      "seconds": 14.531843651086092,
+      "images_per_second": 110.10302879775465
+    },
+    {
+      "images": 1600,
+      "seconds": 14.66601261869073,
+      "images_per_second": 109.09577412751715
+    }
+  ],
+  "peak_allocated_GiB": 8.778277397155762,
+  "peak_reserved_GiB": 10.16015625,
+  "train_call_wall_seconds": 78.46338217705488,
+  "measured_images_per_second": 109.67569939580142,
+  "projected_train_only_minutes": 17.97526718188834
+}

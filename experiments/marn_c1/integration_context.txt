@@ -1,0 +1,710 @@
+
+=== /root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/training/module_model.py RFDETRModelModule methods ===
+__init__, _inductor_cudagraphs_unsupported_reason, on_fit_start, on_train_start, _configure_cuda_graph_runner, on_train_batch_start, on_train_epoch_start, training_step, _aux_aggregate_map, _compact_train_loss_metrics, _compute_train_losses, _scale_loss_for_accumulation, _rescale_accumulated_gradients, _should_step_optimizer, _log_learning_rates, _step_optimizer, _clip_manual_optimization_gradients, _current_lr_scheduler, _step_lr_scheduler, on_before_optimizer_step, on_train_epoch_end, on_validation_epoch_start, on_validation_epoch_end, _detach_results, _log_train_progress_metrics, _log_val_loss_metrics, _resolve_eval_model, validation_step, _validation_loss_is_monitored, _resolve_should_compute_val_loss, _should_compute_val_loss, _fused_adamw_env_eligible, _use_fused_optimizer, _use_fused_adamw_ema, configure_optimizers, configure_gradient_clipping, _normalize_optimizer_state, test_step, predict_step, on_save_checkpoint, on_load_checkpoint, reinitialize_detection_head
+
+--- RFDETRModelModule.__init__:395 ---
+def __init__(
+        self, model_config: ModelConfig, train_config: TrainConfig, *, load_encoder_weights: bool = True
+    ) -> None:
+        super().__init__()
+        self.model_config = model_config
+        self.train_config = train_config
+        # Manual optimization is enabled only for keypoint models so that the box-count
+        # normalizer can be accumulated across grad-accum microbatches. Detection and
+        # segmentation use Lightning's automatic optimization (PTL handles accumulation,
+        # AMP, and gradient clipping), which keeps their step semantics unchanged from
+        # the pre-fix/scaling behaviour.
+        self._use_manual_optimization: bool = bool(getattr(model_config, "use_grouppose_keypoints", False))
+        self.automatic_optimization = not self._use_manual_optimization
+        # LR-scheduler stepping cadence resolved in configure_optimizers(); read by the manual-optimization
+        # step loop and the epoch-end hook. Defaults keep pre-configure behaviour (per-step stepping).
+        self._lr_scheduler_interval: str = "step"
+        self._lr_scheduler_monitor: str | None = None
+        self._accumulated_box_normalizer: Tensor | None = None
+        # Set by _clip_manual_optimization_gradients (proof that on_before_optimizer_step actually ran
+        # for the current optimizer step) and checked/cleared by _step_optimizer. An optimizer whose
+        # step(closure=...) accepts but never calls the closure would otherwise silently skip clipping
+        # on the manual-optimization (keypoint) path; see _step_optimizer.
+        self._manual_clip_hook_fired: bool = False
+        # One-shot guard so the missing-hook warning below fires once per training run, not once per step.
+        self._manual_clip_hook_warned: bool = False
+        # One-shot guard for the notice announcing that the "auto" validation-loss policy resolved to skipping the
+        # loss; emitted from on_validation_epoch_start on the first real (non-sanity) validation epoch only.
+        self._logged_val_loss_skip_notice: bool = False
+        # Validation-loss policy resolved once per validation epoch by on_validation_epoch_start and read per batch by
+        # _should_compute_val_loss. None until that hook runs, so direct validation_step calls resolve it themselves.
+        self._resolved_compute_val_loss: bool | None = None
+        # Memoized loss_name -> aggregate train/ key (or None for a standalone key), built lazily by
+        # _aux_aggregate_map() and recomputed only when loss_dict's key set changes between calls.
+        self._aux_aggregate_cache: dict[str, str | None] | None = None
+        self._aux_aggregate_cache_keys: frozenset[str] | None = None
+        self._cuda_graph_runner: CudaGraphTrainingRunner | None = None
+        # True when cuda_graphs and compile are both active: Inductor's CUDA graph trees replay the
+        # compiled kernels, so _configure_cuda_graph_runner leaves the eager runner unset and
+        # training_step marks each step for the graph-tree allocator instead.
+        self._inductor_cudagraphs: bool = False
+        # Compilation can remain enabled after the narrower Inductor graph-tree gate declines a request.
+        # Keep this separate so the eager runner never captures an OptimizedModule in a compile-only fallback.
+        self._compile_active: bool = False
+        # Allow partial state-dict loading when resuming from a .pth checkpoint
+        # (which contains only model weights, not criterion/postprocess state).
+        self.strict_loading = False
+
+        # Model, criterion, and postprocessor.
+        # load_encoder_weights=False skips fetching upstream encoder weights (DINOv2, or a registered encoder's) for a
+        # model whose weights are about to be replaced anyway, e.g. RFDETR.evaluate()'s transplant.
+        defaults = (
+            MODEL_DEFAULTS if load_encoder_weights else dataclasses.replace(MODEL_DEFAULTS, force_no_pretrain=True)
+        )
+        self.model = build_model_from_config(model_config, train_config, defaults=defaults)
+        if model_config.pretrain_weights is not None:
+            # Canonical loader handles PE interpolation, PTL .ckpt normalisation,
+            # per-group query slicing, class-name extraction, partial-load warnings,
+            # and writes any auto-aligned ``num_classes`` back onto ``model_config``.
+            load_pretrain_weights(self.model, self.model_config)
+            if model_config.use_grouppose_keypoints:
+                # Older model shims may omit the keypoint reset hook; call it only when implemented.
+                reset_keypoint_gaussian_parameters = getattr(self.model, "reset_keypoint_gaussian_parameters", None)
+                if callable(reset_keypoint_gaussian_parameters):
+                    reset_keypoint_gaussian_parameters()
+                    logger.info(
+                        "Reset keypoint Gaussian precision outputs to unit values after pretrained weight load."
+                    )
+        if model_config.backbone_lora:
+            # No-op when load_pretrain_weights already wrapped the encoder to load a LoRA checkpoint.
+            apply_lora(self.model)
+
+        # Build criterion/postprocessors after potential num_classes alignment so
+        # they are constructed with a config that matches the current model head.
+        self.criterion, self.postprocess = build_criterion_from_config(self.model_config, self.train_config)
+
+        # torch.compile is opt-in: set model_config.compile=True to enable.
+        # Only enabled on CUDA; MPS and CPU do not benefit from compilation.
+        # Use the fork-safe DEVICE constant instead of torch.cuda.is_available(),
+        # which creates a CUDA driver context that breaks fork-based DDP.
+        from rfdetr.config import DEVICE
+
+        accelerator = str(train_config.accelerator).lower()
+        uses_cuda_accelerator = accelerator in {"auto", "gpu", "cuda"}
+        # multi_scale is deliberately not part of this gate. The XLA concern it used to carry
+        # (one graph trace per scale) cannot arise here: DEVICE == "cuda" and an accelerator of
+        # auto/gpu/cuda are both required first, so an XLA or TPU run has already disabled
+        # compilation before multi-scale is even considered. Excluding it only ever disabled the
+        # CUDA path, where dynamic=True below is precisely what handles the varying (H, W).
+        compile_enabled = model_config.compile and DEVICE == "cuda" and uses_cuda_accelerator
+        if model_config.compile and not compile_enabled:
+            logger.info(
+                "Disabling torch.compile: RF-DETR enables it only on a CUDA device with a "
+                "CUDA-family accelerator (got DEVICE=%r, accelerator=%r). CPU and MPS are not "
+                "expected to benefit; on XLA/TPU the graph is compiled by the XLA runtime instead.",
+                DEVICE,
+                accelerator,
+            )
+        if compile_enabled:
+            # Dynamic shapes let one graph handle all multi-scale input sizes instead of
+            # recompiling per (H, W) pair. The backbone projector is the exception on CUDA:
+            # Inductor's convolution-backward lowering (pytorch/pytorch#178945) pins the strides of
+            # convolutions that need an input gradient, so that frame still recompiles per size up
+            # to Dynamo's recompile limit. Past that limit the resolutions still unseen run the
+            # projector eager, while the sizes compiled before it keep their graphs and the rest of
+            # the model stays compiled at every scale. Fixed-resolution training uses a static graph
+            # so Inductor can specialize dimensions that stay fixed across training batches
+            # (a validation batch of another shape recompiles once). Positional
+            # interpolation has its own eager boundary for unsupported symbolic bicubic backward.
+            # Do not suppress other compiler errors: nested retries can flood logs and conceal
+            # lost acceleration.
+            # capture_scalar_outputs=True: include Tensor.item() calls. The per-level spatial
+            # shapes reach gen_encoder_output_proposals and ms_deform_attn as Python ints
+            # (spatial_shapes_hw), which are symbols under dynamic tracing and constants in a
+            # static specialization.
+            torch._dynamo.config.capture_scalar_outputs = True
+            # Inductor's coalesce tiling analysis is unsupported on the dynamic-shape path
+            # (torch/_inductor/config.py: "coalesce_tiling_analysis does not yet apply to
+            # dynamic shapes"), yet it still runs and reaches an assert in
+            # tiling_utils.get_pw_red_splits comparing size hints. That assert has no
+            # symbolic-shape escape, unlike the CantSplit branch below it, so entire forward
+            # frames fall back to eager. Turning the analysis off costs nothing under
+            # dynamic=True. Passed as a compile option rather than assigned on the inductor
+            # config module, so the default is preserved for any other compilation in this
+            # process. The knob is absent on older torch versions, where passing it would raise
+            # RuntimeError("Unexpected optimization option ..."), hence the hasattr guard.
+            # Local import: pulls in inductor, which an uncompiled run never needs.
+            import torch._inductor.config as inductor_config
+
+            compile_options: dict[str, Any] = {}
+            if hasattr(inductor_config.triton, "coalesce_tiling_analysis"):
+                compile_options["triton.coalesce_tiling_analysis"] = False
+            if model_config.cuda_graphs:
+                # Replay the compiled kernels with Inductor's CUDA graph trees. This is what
+                # mode="reduce-overhead" sets, but torch.compile rejects mode= together with
+                # options=, so the option key is passed directly. The eager CudaGraphTrainingRunner
+                # must not wrap the OptimizedModule on top of this: make_graphed_callables would
+                # capture Inductor's launch path a second time (see _configure_cuda_graph_runner).
+                unsupported_reason = self._inductor_cudagraphs_unsupported_reason(model_config, train_config)
+                if unsupported_reason is None:
+                    compile_options["triton.cudagraphs"] = True
+                    self._inductor_cudagraphs = True
+                    logger.info(
+                        "CUDA graph replay of the compiled model enabled through Inductor cudagraph trees; "
+                        "each new input shape records its own graph (TORCH_LOGS=cudagraphs shows partitions)."
+                    )
+                else:
+                    logger.warning(
+                        "Falling back to compile-only because %s; cuda_graphs together with compile is "
+                        "validated for single-GPU detection training without gradient accumulation.",
+                        unsupported_reason,
+                    )
+            # Duck-typed like the criterion capability probes below: test doubles and custom criteria
+            # need not expose a matcher at all.
+            matcher = getattr(self.criterion, "matcher", None)
+            if isinstance(matcher, HungarianMatcher):
+                # The matcher owns its compile recipe and builds the compiled cost lazily in the process that
+                # runs it, so spawn-based strategies can still pickle the criterion into their workers. It
+                # shares the model's Inductor options (the coalesce-tiling workaround applies to its dynamic
+                # graph too) and forces CUDA graph replay off on top of them itself.
+                matcher.enable_compiled_l1_cost(compile_options)
+                logger.info("Matcher L1 compilation enabled (dynamic shapes, no CUDA graphs; kernels compile on use).")
+            # OptimizedModule forwards attribute access to the wrapped LWDETR via
+            # __getattr__ at runtime, so self.model keeps working everywhere it's used below.
+            # Static specialization is measured only for the ordinary fixed-resolution detection compile path.
+            # Aspect-preserving resize (square_resize_div_64=False) pads each batch to its own (H, W),
+            # Inductor CUDA graphs keep their established recipe, and segmentation and keypoint models
+            # were not measured, so all of them stay on the dynamic compile.
+            dynamic_shapes = (
+                train_config.multi_scale is not MultiScale.OFF
+                or not train_config.square_resize_div_64
+                or bool(train_config.aug_config)
+                or model_config.cuda_graphs
+                or model_config.segmentation_head
+                or model_config.use_grouppose_keypoints
+            )
+            enable_compiled_losses = getattr(self.criterion, "enable_compiled_detection_losses", None)
+            if enable_compiled_losses is not None and not dynamic_shapes:
+                enable_compiled_losses()
+            self.model = torch.compile(  # type: ignore[assignment]
+                self.model, dynamic=dynamic_shapes, options=compile_options or None
+            )
+            self._compile_active = True
+
+--- RFDETRModelModule.training_step:818 ---
+def training_step(self, batch: tuple[Any, Any], batch_idx: int) -> Tensor | dict[str, Any]:
+        """Compute loss for one training step and log metrics.
+
+        PTL handles AMP (``precision``) without a manual ``GradScaler``. Keypoint models perform manual optimization so
+        box-count loss normalization is based on the full accumulated effective batch rather than each microbatch
+        independently; detection and segmentation models keep Lightning's automatic optimization path.
+
+        Args:
+            batch: Tuple of (NestedTensor samples, list of target dicts).
+            batch_idx: Batch index within the epoch.
+
+        Returns:
+            Scalar loss tensor by default. When ``compute_train_metrics=True``,
+            returns a Lightning-compatible dict containing ``loss`` plus
+            detached postprocessed predictions for train mAP logging.
+        """
+        samples, targets = batch
+        batch_size = len(targets)
+        if self._inductor_cudagraphs:
+            # Lightning holds the logged loss tensors past this step. Marking the step lets cudagraph
+            # trees reuse the previous step's output memory instead of raising "accessing tensor
+            # output of CUDAGraphs that has been overwritten by a subsequent run" on the next replay.
+            torch.compiler.cudagraph_mark_step_begin()  # type: ignore[no-untyped-call]
+        outputs = (
+            self._cuda_graph_runner(samples, targets)
+            if self._cuda_graph_runner is not None
+            else self.model(samples, targets)
+        )
+        if self._use_manual_optimization:
+            loss_dict, raw_loss, normalizer = self._compute_train_losses(outputs, targets)
+            loss_for_backward = self._scale_loss_for_accumulation(raw_loss, normalizer)
+        else:
+            loss_dict = self.criterion(outputs, targets)
+            loss_for_backward = None
+        weight_dict = self.criterion.weight_dict
+        loss: Tensor = torch.stack([loss_dict[k] * weight_dict[k] for k in loss_dict if k in weight_dict]).sum()
+        # Automatic optimization path: return the loss unscaled. Lightning divides the returned loss by
+        # ``trainer.accumulate_grad_batches`` itself (``ClosureResult.from_training_step_output``) before
+        # ``backward()``, so the accumulated gradient already equals the mean over the window; dividing here as
+        # well scaled every accumulated gradient by ``1/N**2``. The manual path scales its own backward loss above.
+        train_log_sync_dist = bool(self.train_config.train_log_sync_dist)
+        train_log_on_step = bool(self.train_config.train_log_on_step)
+        if self.train_config.compact_train_metrics:
+            train_loss_metrics = self._compact_train_loss_metrics(loss_dict, weight_dict)
+            component_on_step = False
+        else:
+            train_loss_metrics = {f"train/{loss_name}": value for loss_name, value in loss_dict.items()}
+            component_on_step = train_log_on_step
+        self.log_dict(
+            train_loss_metrics,
+            on_step=component_on_step,
+            on_epoch=True,
+            sync_dist=train_log_sync_dist,
+            batch_size=batch_size,
+        )
+        self.log(
+            "train/loss",
+            loss,
+            prog_bar=True,
+            on_step=train_log_on_step,
+            on_epoch=True,
+            sync_dist=train_log_sync_dist,
+            batch_size=batch_size,
+        )
+        self._log_train_progress_metrics(loss, loss_dict, batch_size=batch_size)
+        if self._use_manual_optimization:
+            # Only the manual path drives the optimizer itself; Lightning owns it on the
+            # automatic path, so fetching it there would touch trainer.strategy for nothing.
+            optimizer = self.optimizers()
+            if isinstance(optimizer, list):
+                optimizer = optimizer[0]
+            # loss_for_backward is only None in the automatic-optimization branch above,
+            # which is mutually exclusive with _use_manual_optimization.
+            assert loss_for_backward is not None
+            should_step = self._should_step_optimizer(batch_idx)
+            # LightningOptimizer maps sync_grad=False to DDP's no_sync context. Intermediate
+            # microbatches accumulate locally; the closing backward reduces the whole window.
+            sync_context = (
+                optimizer.toggle_model(sync_grad=should_step)
+                if isinstance(optimizer, LightningOptimizer)
+                else nullcontext()
+            )
+            with sync_context:
+                self.manual_backward(loss_for_backward)
+            if should_step:
+                self._step_optimizer(optimizer)
+        if self.train_config.compute_train_metrics:
+            with torch.no_grad():
+                orig_sizes = torch.stack([t["orig_size"] for t in targets])
+                # Slice to group-0 queries only — mirrors the eval-mode path in
+                # lwdetr.py that trims refpoint_embed to [:num_queries]. Without
+                # this, training mode emits group_detr×num_queries queries (e.g.
+                # 13×300=3900) and postprocess top-k selection draws from all
+                # groups, producing OKS/mAP values ~50× below true accuracy.
+                nq = self.model_config.num_queries
+                # Only include tensor-valued keys — pred_masks is a dict in
+                # train mode (sparse_forward) and postprocess cannot handle it.
+                inference_outputs = {
+                    k: v[:, :nq] if v.ndim >= 2 else v
+                    for k, v in outputs.items()
+                    if k in ("pred_logits", "pred_boxes", "pred_masks", "pred_keypoints") and isinstance(v, Tensor)
+                }
+                results = self.postprocess(inference_outputs, orig_sizes)
+            return {
+                "loss": loss.detach() if self._use_manual_optimization else loss,
+                "results": self._detach_results(results),
+                "targets": targets,
+            }
+        return loss.detach() if self._use_manual_optimization else loss
+
+--- RFDETRModelModule.on_before_optimizer_step:1192 ---
+def on_before_optimizer_step(self, optimizer: torch.optim.Optimizer) -> None:
+        """Log rates and, under manual optimization, clip gradients before each optimizer step.
+
+        Lightning invokes this hook for both automatic-optimization and
+        manual-optimization (keypoint) training paths, so it is the sole
+        emission site for learning-rate logging on either path. In the keypoint
+        path, XLA included, Lightning callback hooks run before this module hook
+        clips gradients, so callbacks observe the unclipped gradients as they do
+        on the automatic-optimization path.
+
+        Lightning's precision plugins call this hook after the backward closure. ``MixedPrecision`` with a GradScaler
+        (fp16) calls it right after ``scaler.unscale_()``; XLA calls it after reducing gradients across devices and
+        does not rely on GradScaler. The manual path therefore clips true gradients, including reduced XLA gradients.
+        Clipping before ``optimizer.step()`` would clip scaled fp16 gradients and the optimizer would receive
+        ``clip_max_norm / scale``. The automatic path is clipped by Lightning after this hook returns.
+
+        Args:
+            optimizer: Optimizer about to update model parameters.
+        """
+        self._log_learning_rates(optimizer)
+        if not self.automatic_optimization:
+            self._clip_manual_optimization_gradients(optimizer)
+
+=== /root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/models/criterion.py SetCriterion methods ===
+__init__, _output_device, num_boxes_for_targets, loss_labels, loss_cardinality, loss_boxes, loss_masks, loss_keypoints, _get_src_permutation_idx, _get_matched_targets, _matched_valid_mask, _get_tgt_permutation_idx, _can_batch_detection_losses, _get_batched_detection_losses, enable_compiled_detection_losses, _resolve_batched_detection_losses, get_loss, forward
+
+--- SetCriterion.forward:1231 ---
+def forward(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        num_boxes: Tensor | float | None = None,
+    ) -> dict[str, Tensor]:
+        """Compute every configured loss for one (outputs, targets) pair.
+
+        Each output layer is matched against the targets. Compatible detection layers are batched through the
+        matcher's private fast path; every other matcher and input shape uses the established per-layer calls. Each
+        loss is then evaluated on that layer's matched indices and normalized by ``num_boxes``.
+
+        Args:
+            outputs: Model output dictionary. Must contain the tensors required by
+                every loss in ``self.losses`` (for example ``"pred_logits"``,
+                ``"pred_boxes"``, ``"pred_masks"``, ``"pred_keypoints"``). May also
+                contain ``"aux_outputs"`` (list of layer-wise outputs) and
+                ``"enc_outputs"`` (encoder outputs); both are processed identically
+                to the last layer and contribute prefixed keys to the returned dict.
+            targets: Per-image target dictionaries; ``len(targets) == batch_size``.
+                The expected keys depend on the losses being applied — see each
+                ``loss_*`` method for its target requirements.
+            num_boxes: Optional explicit box-count denominator.
+
+                - ``None`` (default): call :meth:`num_boxes_for_targets` to derive
+                  the distributed-reduced normalizer for the current batch.
+                - ``float`` / ``int``: cast to a tensor on the model output device
+                  and used verbatim. Passing ``1.0`` yields *unnormalized* loss
+                  numerators (used by the manual-optimization path so the caller
+                  can apply its own accumulated denominator).
+                - ``Tensor``: moved to the model output device and used
+                  verbatim. The caller is responsible for any cross-rank reduction;
+                  no extra all-reduce is performed in this branch.
+
+        Returns:
+            Dictionary of named loss tensors. Last-layer losses keep their base
+            names (``"loss_ce"``, ``"loss_bbox"``, ``"loss_giou"``,
+            ``"loss_mask_ce"``, ``"loss_mask_dice"``, ``"loss_keypoints_*"``).
+            Auxiliary-layer losses get a ``"_<i>"`` suffix; encoder-layer losses
+            get an ``"_enc"`` suffix.
+
+        Raises:
+            ValueError: If the targets carry masks and the final layer's outputs do, but an auxiliary layer's or the
+                encoder proposals' outputs do not, as an eval-mode ``LWDETR`` returns them unless called with
+                ``all_layer_masks=True``.
+
+        Examples:
+            >>> import torch
+            >>> from unittest.mock import MagicMock
+            >>> from rfdetr.models.criterion import SetCriterion
+            >>> criterion = SetCriterion.__new__(SetCriterion)
+            >>> criterion.training = False
+            >>> criterion.group_detr = 1
+            >>> criterion.sum_group_losses = False
+            >>> criterion.losses = []
+            >>> criterion.matcher = MagicMock(return_value=[])
+            >>> outputs = {"pred_logits": torch.zeros(1, 1, 1)}
+            >>> targets = [{"labels": torch.tensor([0])}]
+            >>> criterion.forward(outputs, targets, num_boxes=1.0)
+            {}
+        """
+        group_detr = self.group_detr if self.training else 1
+        outputs_without_aux = {k: v for k, v in outputs.items() if k != "aux_outputs"}
+
+        # Caches the compact-path safety gate's target-side sweep once per step instead of once per
+        # matcher() call below, since every call shares the same `targets`. See
+        # :meth:`HungarianMatcher._precompute_target_side_safety` (and its `_TargetSideSafety`
+        # return type) for why this is cached and when reuse vs. a fresh computation is chosen --
+        # the only thing decided here is whether this step makes more than one matcher() call at
+        # all, since a step with no aux_outputs and no enc_outputs makes exactly one, where
+        # precomputing would be pure overhead. `outputs.get("aux_outputs")` is falsy for both an
+        # absent key and a present-but-empty list, so a dec_layers=1 config whose aux_outputs is []
+        # is treated as the single-call step it is. Guarded by getattr so a matcher that predates
+        # this optimization still works: `target_side_safety` is not part of the matcher contract
+        # SetCriterion requires, so the kwarg is withheld entirely from a matcher that does not
+        # advertise the precompute method, rather than passed as None and raising TypeError on its
+        # two-argument signature.
+        precompute = getattr(self.matcher, "_precompute_target_side_safety", None)
+        matcher_kwargs: dict[str, Any] = {"group_detr": group_detr}
+        if precompute is not None and (outputs.get("aux_outputs") or "enc_outputs" in outputs):
+            matcher_kwargs["target_side_safety"] = precompute(outputs_without_aux, targets)
+
+        # Every layer's loss-key suffix is appended in the same statement as the layer itself, so the
+        # final/aux/enc keying cannot drift from the layers it keys when either side gains an entry.
+        # `matched_outputs` stays a plain list of output dicts: it is what the matcher consumes.
+        matched_outputs = [outputs_without_aux]
+        layer_suffixes = [""]
+        if "aux_outputs" in outputs:
+            matched_outputs.extend(outputs["aux_outputs"])
+            layer_suffixes.extend(f"_{aux_index}" for aux_index in range(len(outputs["aux_outputs"])))
+        if "enc_outputs" in outputs:
+            matched_outputs.append(outputs["enc_outputs"])
+            layer_suffixes.append("_enc")
+
+        # Mask targets make the matcher read every layer's pred_masks. An eval-mode segmentation LWDETR leaves them out
+        # of the auxiliary layers and encoder proposals unless it was called with all_layer_masks=True.
+        masks_needed = bool(targets) and "masks" in targets[0] and "pred_masks" in outputs_without_aux
+        if masks_needed and any("pred_masks" not in layer for layer in matched_outputs):
+            raise ValueError(
+                "The auxiliary-layer or encoder-proposal outputs carry no pred_masks, which mask targets need. An "
+                "eval-mode LWDETR computes them only when called with all_layer_masks=True."
+            )
+
+        # The batched fast path calls `_match_many` unbound off the matcher's class, so it skips
+        # `nn.Module.__call__` entirely. Anything that legitimately hangs off that call path must
+        # therefore veto it: a subclass overriding `forward` -- the sanctioned nn.Module extension
+        # point -- would otherwise have the base matching logic silently answer in its place, and
+        # registered forward hooks would never fire. Both cases decline to the per-layer fallback
+        # below, which still routes through `nn.Module.__call__`. The `forward` lookup stays on the
+        # class (never the instance) and tolerates its absence, so a duck-typed non-Module matcher
+        # keeps declining the fast path exactly as it does for a missing `_match_many`.
+        matcher_type = type(self.matcher)
+        fast_path_safe = (
+            getattr(matcher_type, "forward", None) is HungarianMatcher.forward
+            and not self.matcher._forward_pre_hooks
+            and not self.matcher._forward_hooks
+        )
+        match_many = getattr(matcher_type, "_match_many", None) if fast_path_safe else None
+        all_indices = (
+            None if match_many is None else match_many(self.matcher, matched_outputs, targets, **matcher_kwargs)
+        )
+        if all_indices is None:
+            all_indices = [self.matcher(layer_outputs, targets, **matcher_kwargs) for layer_outputs in matched_outputs]
+
+        if num_boxes is None:
+            num_boxes = self.num_boxes_for_targets(outputs, targets)
+        elif not torch.is_tensor(num_boxes):
+            num_boxes = torch.as_tensor(num_boxes, dtype=torch.float, device=self._output_device(outputs))
+        else:
+            num_boxes = num_boxes.to(device=self._output_device(outputs), dtype=torch.float)
+
+        # Labels and boxes are both requested by every detection configuration, so build their
+        # shared matched tensors once per output layer before either loss consumes them.
+        has_detection_targets = {"labels", "boxes"} <= set(self.losses)
+        matched_targets_by_layer = (
+            [self._get_matched_targets(targets, indices) for indices in all_indices] if has_detection_targets else []
+        )
+        if self._can_batch_detection_losses(matched_outputs, matched_targets_by_layer):
+            batched_losses = self._get_batched_detection_losses(
+                matched_outputs, targets, all_indices, matched_targets_by_layer, num_boxes
+            )
+            losses = {}
+            for suffix, layer_losses in zip(layer_suffixes, batched_losses, strict=True):
+                losses.update({key + suffix: value for key, value in layer_losses.items()})
+            return losses
+
+        losses = {}
+        for layer_index, (suffix, layer_outputs, indices) in enumerate(
+            zip(layer_suffixes, matched_outputs, all_indices, strict=True)
+        ):
+            matched_targets = matched_targets_by_layer[layer_index] if has_detection_targets else None
+            for loss in self.losses:
+                # Only the final layer carries an empty suffix, so a non-empty one marks the
+                # auxiliary and encoder layers whose classification stats are not logged.
+                kwargs: dict[str, Any] = {"log": False} if suffix and loss == "labels" else {}
+                if matched_targets is not None:
+                    kwargs["matched_targets"] = matched_targets
+                layer_losses = self.get_loss(loss, layer_outputs, targets, indices, num_boxes, **kwargs)
+                losses.update({key + suffix: value for key, value in layer_losses.items()})
+
+        return losses
+
+=== /root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/models/matcher.py HungarianMatcher methods ===
+__init__, enable_compiled_l1_cost, _resolve_l1_cost, __getstate__, _sanitize_cost_matrix, _focal_classification_cost, _target_side_precheck, _compact_path_applicable, _compact_mask_path_applicable, _mask_compact_device_supported, _mask_compact_worth_it, _precompute_target_side_safety, _detection_inputs_are_safe, _compute_compact_detection_cost_matrix, _compute_stacked_compact_cost_matrices, _match_many, _assign_compact_cost_matrix, _compute_mask_costs, forward
+
+--- HungarianMatcher.forward:911 ---
+def forward(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Any]],
+        group_detr: int = 1,
+        target_side_safety: _TargetSideSafety | None = None,
+    ) -> list[tuple[Tensor, Tensor]]:
+        """Performs the matching
+
+        Args:
+            outputs: Dict containing at least these entries:
+                 "pred_logits": Tensor of dim [batch_size, num_queries, num_classes] with the classification logits
+                 "pred_boxes": Tensor of dim [batch_size, num_queries, 4] with the predicted box coordinates
+            targets: List of targets (len(targets) = batch_size), where each target is a dict containing:
+                 "labels": Tensor of dim [num_target_boxes] (where num_target_boxes is the number of ground-truth
+                           objects in the target) containing the class labels
+                 "boxes": Tensor of dim [num_target_boxes, 4] containing the target box coordinates "masks": Tensor of
+                 dim [num_target_boxes, H, W] containing the target mask coordinates
+            group_detr: Number of groups used for matching.
+            target_side_safety: An optional precomputed result from
+                :meth:`_precompute_target_side_safety`, forwarded to
+                :meth:`_detection_inputs_are_safe` to skip recomputing the target-side half of the
+                compact-path safety gate when it still applies.
+
+        Returns:
+            A list of size batch_size, containing tuples of (index_i, index_j) where:
+                - index_i is the indices of the selected predictions (in order)
+                - index_j is the indices of the corresponding selected targets (in order)
+            For each batch element, it holds len(index_i) == len(index_j). With group_detr == 1 this
+            length is min(num_queries, num_target_boxes); with group_detr > 1 the per-group matches are
+            concatenated, so the length is that quantity summed over the groups.
+        """
+        bs, num_queries = outputs["pred_logits"].shape[:2]
+
+        masks_present = "masks" in targets[0]
+        keypoints_present = "pred_keypoints" in outputs and "keypoints" in targets[0]
+        # Set by the masks-hybrid branch below when it draws the mask cost's random point sample so
+        # the full-cartesian fallback (reached when the combined cost turns out non-finite) reuses
+        # that exact draw instead of calling `_compute_mask_costs` a second time — see the fall-
+        # through comment in that branch for why a second draw would silently diverge from the
+        # single-draw behaviour the full path has always had for a masks-present batch.
+        precomputed_mask_costs: tuple[Tensor, Tensor] | None = None
+        compact_eligible = self._compact_path_applicable(outputs, targets) and self._detection_inputs_are_safe(
+            outputs, targets, target_side_safety
+        )
+        if compact_eligible:
+            sizes = [len(target["boxes"]) for target in targets]
+            compact_cost_matrix = self._compute_compact_detection_cost_matrix(outputs, targets).float()
+            # Solver choice is by device, not by problem count: the batched solver's Triton kernel
+            # beats SciPy on CUDA from roughly 16 problems upward, and this path's smallest real
+            # batch already supplies `len(sizes) * group_detr` >= 26 with the default `group_detr`.
+            # Off CUDA the same call resolves to SciPy anyway, only behind extra stacking and
+            # gather bookkeeping, so the host solve stays faster there. The move to host also keeps
+            # MPS working, since SciPy cannot read a tensor that is not on the host.
+            if not compact_cost_matrix.is_cuda:
+                compact_cost_matrix = compact_cost_matrix.cpu()
+            if torch.isfinite(compact_cost_matrix).all():
+                if compact_cost_matrix.is_cuda:
+                    return _assignment.assign_many_bucketed([compact_cost_matrix], sizes, group_detr)[0]
+                return self._assign_compact_cost_matrix(compact_cost_matrix, sizes, group_detr)
+            # Weighted costs overflowed despite finite, bounded inputs (e.g. an extreme cost
+            # coefficient) — fall through to the full path below instead of sanitizing the padded
+            # compact matrix in isolation, whose finite-value statistics (and therefore the
+            # sentinel `_sanitize_cost_matrix` computes) can differ from the full cartesian
+            # matrix's. Falling through keeps this exceptional branch byte-for-byte identical to
+            # the pre-existing behaviour; it costs the redundant cross-image compute only on this
+            # already-rare path.
+        elif (
+            self._mask_compact_device_supported(outputs)
+            and self._compact_mask_path_applicable(outputs, targets)
+            and self._mask_compact_worth_it(outputs, targets)
+            and self._detection_inputs_are_safe(outputs, targets, target_side_safety)
+        ):
+            # masks_present hybrid: class/bbox/GIoU through the same compact per-image route the
+            # detection-only path above uses (cheap here too — `_detection_inputs_are_safe` only
+            # sweeps boxes/labels, not masks, so it is exactly as valid a gate for this route's
+            # class/bbox/GIoU half), combined with the mask cost's own diagonal blocks extracted
+            # from its full cross-image matrix (mask costs are NOT compactable the same way — a
+            # prior attempt at compacting them regressed 15-94% because `pad_sequence`+batched
+            # `einsum` do not scale down to per-image mask-sized (`num_points`-wide) inputs the way
+            # `cdist`/gather do for 4-wide boxes and class logits).
+            sizes = [len(target["boxes"]) for target in targets]
+            compact_class_bbox_giou = self._compute_compact_detection_cost_matrix(outputs, targets)
+            cost_mask_ce, cost_mask_dice = self._compute_mask_costs(outputs, targets)
+            precomputed_mask_costs = (cost_mask_ce, cost_mask_dice)
+            weighted_mask_ce = (self.cost_mask_ce * cost_mask_ce).view(bs, num_queries, -1)
+            weighted_mask_dice = (self.cost_mask_dice * cost_mask_dice).view(bs, num_queries, -1)
+            target_offsets = [0]
+            for size in sizes:
+                target_offsets.append(target_offsets[-1] + size)
+            mask_ce_diagonal = torch.cat(
+                [weighted_mask_ce[index, :, target_offsets[index] : target_offsets[index + 1]] for index in range(bs)],
+                dim=-1,
+            )
+            mask_dice_diagonal = torch.cat(
+                [
+                    weighted_mask_dice[index, :, target_offsets[index] : target_offsets[index + 1]]
+                    for index in range(bs)
+                ],
+                dim=-1,
+            )
+            # Preserve the full path's left-associative addition order exactly: floating-point
+            # addition is not associative, and regrouping the mask terms can change a near-tied
+            # Hungarian assignment by one ULP.
+            combined_cost_matrix = compact_class_bbox_giou + mask_ce_diagonal
+            combined_cost_matrix = (combined_cost_matrix + mask_dice_diagonal).float()
+            if torch.isfinite(combined_cost_matrix).all():
+                if combined_cost_matrix.is_cuda:
+                    return _assignment.assign_many_bucketed([combined_cost_matrix], sizes, group_detr)[0]
+                return self._assign_compact_cost_matrix(combined_cost_matrix.cpu(), sizes, group_detr)
+            # Same trade-off as the detection-only compact path above: a non-finite combined cost
+            # (most likely from the mask side, which this branch's safety gate does not sweep)
+            # falls through to the full cartesian path below, which reuses this branch's own mask
+            # cost draw (`precomputed_mask_costs`, set above) rather than sanitizing this matrix in
+            # isolation or drawing a second, different random point sample.
+
+        # We flatten to compute the cost matrices in a batch
+        flat_pred_logits = outputs["pred_logits"].flatten(0, 1)
+        out_bbox = outputs["pred_boxes"].flatten(0, 1)  # [batch_size * num_queries, 4]
+
+        # Also concat the target labels and boxes
+        tgt_ids = torch.cat([v["labels"] for v in targets])
+        tgt_bbox = torch.cat([v["boxes"] for v in targets])
+        tgt_keypoints = None
+
+        if keypoints_present:
+            tgt_keypoints = torch.cat([v["keypoints"] for v in targets], dim=0)
+
+        # Compute the giou cost between boxes
+        giou = generalized_box_iou(box_cxcywh_to_xyxy(out_bbox), box_cxcywh_to_xyxy(tgt_bbox))
+        cost_giou = -giou
+
+        # Compute the classification cost.
+        # Gather the target-class columns first: only the tgt_ids columns of the focal terms are
+        # consumed, so computing them over all num_classes columns would be wasted work/memory —
+        # a real win when num_targets <= num_classes (e.g. large-vocabulary datasets). When
+        # num_targets exceeds num_classes (repeated columns, e.g. crowded COCO batches) this
+        # gathers marginally more values than the full materialization would; net impact is
+        # negligible either way since the Hungarian solve dominates matcher wall-time.
+        tgt_logits = flat_pred_logits[:, tgt_ids]  # [batch_size * num_queries, num_targets]
+        cost_class = self._focal_classification_cost(tgt_logits)
+
+        # Compute the L1 cost between boxes
+        # Mixed dtypes retain cdist's eager autocast/error behavior rather than tracing an error path;
+        # the gate runs before resolving so such a pair never even triggers the lazy compile.
+        l1_cost = self._resolve_l1_cost() if out_bbox.dtype == tgt_bbox.dtype else pairwise_box_l1_cost
+        cost_bbox = l1_cost(out_bbox, tgt_bbox)
+
+        if masks_present:
+            # Reuse the masks-hybrid branch's own draw when this call reached the fallback because
+            # its combined cost was non-finite: `_compute_mask_costs` samples its point coordinates
+            # with `torch.rand`, so calling it again here would silently consume a second, different
+            # sample instead of preserving the single draw the full path has always made.
+            cost_mask_ce, cost_mask_dice = (
+                precomputed_mask_costs
+                if precomputed_mask_costs is not None
+                else self._compute_mask_costs(outputs, targets)
+            )
+
+        if keypoints_present and tgt_keypoints is not None:
+            target_areas = tgt_bbox[:, 2] * tgt_bbox[:, 3]
+            cost_l1, cost_findable, cost_visible, cost_nll = compute_keypoint_matching_cost(
+                all_pred_keypoints=outputs["pred_keypoints"],
+                target_keypoints=tgt_keypoints,
+                target_classes=tgt_ids,
+                target_areas=target_areas,
+                num_keypoints_per_class=self.num_keypoints_per_class,
+            )
+            cost_l1 = cost_l1.flatten(0, 1)
+            cost_findable = cost_findable.flatten(0, 1)
+            cost_visible = cost_visible.flatten(0, 1)
+            cost_nll = cost_nll.flatten(0, 1)
+
+        # Final cost matrix
+        cost_matrix: Tensor = self.cost_bbox * cost_bbox + self.cost_class * cost_class + self.cost_giou * cost_giou
+        if masks_present:
+            cost_matrix = cost_matrix + self.cost_mask_ce * cost_mask_ce + self.cost_mask_dice * cost_mask_dice
+        if keypoints_present:
+            cost_matrix = (
+                cost_matrix
+                + self.keypoint_l1_loss_coef * cost_l1
+                + self.keypoint_findable_loss_coef * cost_findable
+                + self.keypoint_visible_loss_coef * cost_visible
+                + self.keypoint_nll_loss_coef * cost_nll
+            )
+        cost_matrix = cost_matrix.view(bs, num_queries, -1).float()
+        if "valid" in targets[0]:
+            # Same fixed-size target padding the compact path above masks. This full cartesian
+            # path is what a batch actually takes whenever `_compact_path_applicable` declines it
+            # (batch_size == 1, or a mask/keypoint target is present), so it needs the identical
+            # sentinel: without it, filler columns compete on their real (near-zero-box) cost and
+            # can displace a real target from its optimal query instead of only taking leftovers.
+            tgt_valid = torch.cat([target["valid"] for target in targets]).to(cost_matrix.device)
+            cost_matrix = cost_matrix.masked_fill(~tgt_valid[None, None, :], _PADDED_TARGET_COST)
+
+        # We assume any good match will not cause NaN or Inf, so replace invalid
+        # entries with a finite value that is larger than every valid cost.
+        all_finite = torch.isfinite(cost_matrix).all().item()
+        if not all_finite:
+            cost_matrix = cost_matrix.cpu()
+            if not self._warned_non_finite_costs:
+                logger.warning(
+                    "Non-finite values detected in matcher cost matrix; "
+                    "replacing with finite sentinel. "
+                    "Check for numerical instability."
+                )
+                self._warned_non_finite_costs = True
+            cost_matrix = self._sanitize_cost_matrix(cost_matrix)
+
+        sizes = [len(v["boxes"]) for v in targets]
+        target_offsets = [0]
+        for size in sizes:
+            target_offsets.append(target_offsets[-1] + size)
+        diagonal_cost_matrix: Tensor = torch.cat(
+            [cost_matrix[i, :, target_offsets[i] : target_offsets[i + 1]] for i in range(bs)], dim=-1
+        ).cpu()
+        return self._assign_compact_cost_matrix(diagonal_cost_matrix, sizes, group_detr)

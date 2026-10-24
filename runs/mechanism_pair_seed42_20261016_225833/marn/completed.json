@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "variant": "marn",
+  "epochs": 4,
+  "global_step": 29572,
+  "wall_seconds": 6206.867286209017,
+  "best": {
+    "regular": {
+      "epoch": 1,
+      "global_step": 7393
+    },
+    "ema": {
+      "epoch": 1,
+      "global_step": 7393
+    }
+  }
+}

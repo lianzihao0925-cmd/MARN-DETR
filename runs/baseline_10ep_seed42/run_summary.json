@@ -1,0 +1,14 @@
+{
+  "completed_10_full_epochs": true,
+  "full_epochs": 10,
+  "elapsed_seconds": 11547.906290262938,
+  "peak_allocated_GiB": 9.035799026489258,
+  "peak_reserved_GiB": 10.333984375,
+  "last_checkpoint_exists": true,
+  "checkpoints": [
+    "checkpoint_best_ema.pth",
+    "checkpoint_best_regular.pth",
+    "checkpoint_best_total.pth",
+    "last_ema.pth"
+  ]
+}

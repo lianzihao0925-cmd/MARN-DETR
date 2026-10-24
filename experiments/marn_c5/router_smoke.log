@@ -1,0 +1,12 @@
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 19:10:40] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 19:10:40] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+loading annotations into memory...
+Done (t=13.18s)
+creating index...
+index created!
+ROUTER_SMOKE_COMPLETED {"stage": "smoke_complete", "images": 8, "examples": 16, "train_examples": 14, "holdout_examples": 2, "source_split": "COCO train2017 only; split by image", "detector_bank_frozen": true, "probe_precision": "fp32", "context_queries": 29, "exploration_queries_per_image": 2, "backbone_reuse": false, "limitations": "offline frozen-detector pilot; no online route training, no prefix reuse, not complete UAMR or convergence evidence", "label_mean": -6.268545985221863e-05, "label_std": 0.0002678464516066015, "positive_fraction": 0.5625, "max_abs_label": 0.0007169246673583984, "seconds": 17.14011161401868, "passed": true}

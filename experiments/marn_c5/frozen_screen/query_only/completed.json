@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "variant": "query_only",
+  "epochs": 1,
+  "global_step": 7393,
+  "wall_seconds": 760.745461832732,
+  "best": {
+    "regular": {
+      "epoch": 1,
+      "global_step": 7393
+    },
+    "ema": {
+      "epoch": 1,
+      "global_step": 7393
+    }
+  }
+}

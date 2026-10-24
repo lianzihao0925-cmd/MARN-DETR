@@ -1,0 +1,10 @@
+{
+  "datasets/coco.py": "ae87d7da5428f77427e47413f2653a7326561472857a46919290ae174b3a199a",
+  "datasets/_torchvision.py": "54e05ddc272aed07598604866c49199f377bf2b13ce5612aad976fe0e0fde0fe",
+  "datasets/transforms.py": "d6f504aac5f277dc349ae59e597da7eac8faef7ed20b0c2b7923d3e2e91def15",
+  "datasets/_aug_utils.py": "22e459db817876cc7d582a70fe2cc54887b67a7c466f5e8b01c9cd0ee05782f3",
+  "training/module_data.py": "37fe493dd1868ead3d18320a72ab9c64c33cfdd89d4d0e96f426b3651b97c2d1",
+  "config.py": "5968e352e67bed9dabaaccfe0ee23caaa07569455e1eab47023d5622be9e5675",
+  "_namespace.py": "7b5ab31bd5a8f99b2588c766a3a8c5193d79fd7326c84f3610282f33143f7280",
+  "marn/integration.py": "ef1ef24edcc394bfb6798cbbc66c30400074128434e7c10b6b5803a0cde1391c"
+}

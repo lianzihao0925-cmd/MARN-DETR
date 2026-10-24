@@ -1,0 +1,1396 @@
+# ------------------------------------------------------------------------
+# RF-DETR
+# Copyright (c) 2025 Roboflow. All Rights Reserved.
+# Licensed under the Apache License, Version 2.0 [see LICENSE for details]
+# ------------------------------------------------------------------------
+# Extracted from lwdetr.py (Phase 10)
+# Original copyrights: LW-DETR (Baidu), Conditional DETR (Microsoft),
+# DETR (Facebook), Deformable DETR (SenseTime)
+# ------------------------------------------------------------------------
+"""Loss functions and criterion for RF-DETR training."""
+
+from __future__ import annotations
+
+import sys
+from collections.abc import Callable
+from typing import Any, NamedTuple, Union
+
+import torch
+import torch.nn.functional as F  # noqa: N812
+from torch import Tensor, nn
+
+from rfdetr.models.heads.keypoints import compute_l1_keypoint_loss
+from rfdetr.models.heads.segmentation import (
+    calculate_uncertainty,
+    get_uncertain_point_coords_with_randomness,
+    point_sample,
+)
+from rfdetr.models.matcher import HungarianMatcher
+from rfdetr.models.math import accuracy
+from rfdetr.utilities import box_ops
+from rfdetr.utilities.distributed import get_world_size, is_dist_avail_and_initialized
+
+_LossFunction = Callable[..., dict[str, Tensor]]
+# The CPU benchmark first crossed over at 256x256 masks (1,048,576 elements):
+# 96x96, 128x128, and 192x192 direct gathers were 1.4x slower than point_sample,
+# while 256x256 was 1.06x faster and the 312x312 workload was 2.48x faster.
+_MIN_DIRECT_MASK_ELEMENTS = 1 << 20
+# Require enough mask work per sampled value to amortize direct indexing's fixed
+# bookkeeping.  Sixteen is a conservative workload-ratio heuristic, not a
+# standalone crossover measurement; the benchmarked production workload clears it.
+_MIN_DIRECT_MASK_ELEMENTS_PER_POINT = 16
+# One-match groups were 1.25x-1.5x slower in repeated measurements because the
+# per-image slicing, index transfer, and gather overhead was not amortized.
+_MIN_DIRECT_MATCHES_PER_GROUP = 2
+
+
+def _batched_detection_loss_tensors(
+    logits: Tensor,
+    boxes: Tensor,
+    batch_indices: Tensor,
+    source_indices: Tensor,
+    target_labels: Tensor,
+    target_boxes: Tensor,
+    valid_mask: Tensor,
+    target_lengths: Tensor,
+    num_boxes: Tensor,
+    focal_alpha: float,
+) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    """Compute layer-batched IA-BCE classification, box, GIoU, and cardinality losses.
+
+    This tensor-only boundary is suitable for one dynamic-shape ``torch.compile`` function; Python target dictionaries,
+    matcher results, suffix bookkeeping, and diagnostics stay outside it.
+
+    Args:
+        logits: Layer-major class logits with shape ``(layers, batch, queries, classes)``.
+        boxes: Layer-major boxes with shape ``(layers, batch, queries, 4)``.
+        batch_indices: Matched batch indices with shape ``(layers, matches)``.
+        source_indices: Matched query indices with shape ``(layers, matches)``.
+        target_labels: Matched class labels with shape ``(layers, matches)``.
+        target_boxes: Matched target boxes with shape ``(layers, matches, 4)``.
+        valid_mask: Float mask with shape ``(layers, matches)``; all ones for unpadded targets.
+        target_lengths: Number of real targets in each batch item.
+        num_boxes: Shared loss-normalization denominator.
+        focal_alpha: IA-BCE interpolation exponent.
+
+    Returns:
+        Per-layer classification, L1 box, GIoU, and cardinality losses.
+    """
+    layer_indices = torch.arange(logits.shape[0], device=logits.device)[:, None]
+    selected_boxes = boxes[layer_indices, batch_indices, source_indices]
+    flat_selected_xyxy = box_ops.box_cxcywh_to_xyxy(selected_boxes.reshape(-1, 4))
+    flat_target_xyxy = box_ops.box_cxcywh_to_xyxy(target_boxes.reshape(-1, 4))
+    iou_targets, _ = box_ops.elementwise_box_iou(flat_selected_xyxy.detach(), flat_target_xyxy)
+    iou_targets = iou_targets.reshape(selected_boxes.shape[:2]).detach()
+
+    probability = logits.sigmoid()
+    positive_weights = torch.zeros_like(logits)
+    negative_weights = probability.square()
+    positive_indices = (layer_indices, batch_indices, source_indices, target_labels)
+    target_scores = torch.clamp(
+        probability[positive_indices].pow(focal_alpha) * iou_targets.pow(1 - focal_alpha), 0.01
+    ).detach()
+    positive_weights[positive_indices] = (target_scores * valid_mask).to(positive_weights.dtype)
+    negative_weights[positive_indices] = torch.where(
+        valid_mask.bool(),
+        (1 - target_scores).to(negative_weights.dtype),
+        negative_weights[positive_indices],
+    )
+    # The per-layer path divides a 0-dim sum by the 0-dim ``num_boxes``, so a BF16/FP16 sum promotes to float32.
+    # Dividing a per-layer vector by a 0-dim tensor would keep the low-precision dtype, so ``num_boxes`` becomes
+    # a vector too.
+    num_boxes = num_boxes.reshape(1)
+    classification = negative_weights * logits - F.logsigmoid(logits) * (positive_weights + negative_weights)
+    loss_ce = classification.sum(dim=(1, 2, 3)) / num_boxes
+
+    loss_bbox_values = F.l1_loss(selected_boxes, target_boxes, reduction="none") * valid_mask[:, :, None]
+    loss_giou_values = 1 - box_ops.elementwise_generalized_box_iou(flat_selected_xyxy, flat_target_xyxy)
+    loss_giou_values = loss_giou_values.reshape(selected_boxes.shape[:2]) * valid_mask
+    loss_bbox = loss_bbox_values.sum(dim=(1, 2)) / num_boxes
+    loss_giou = loss_giou_values.sum(dim=1) / num_boxes
+
+    cardinality = (probability.max(-1).values > 0.5).sum(2)
+    cardinality_error = (cardinality.float() - target_lengths.float()).abs().mean(1)
+    return loss_ce, loss_bbox, loss_giou, cardinality_error
+
+
+def _sample_target_masks_at_points(
+    targets: list[dict[str, Tensor]],
+    indices: list[tuple[Tensor, Tensor]],
+    point_coords: Tensor,
+) -> Tensor:
+    """Sample matched ground-truth masks at normalized point coordinates.
+
+    Large contiguous masks on CPU are indexed directly, avoiding the
+    full matched-mask copies created by advanced indexing and concatenation.
+    Eligible multi-image CUDA boolean masks are sampled per image with the native
+    nearest-neighbor ``point_sample`` path, avoiding a full batch of matched float masks.
+    Other inputs retain the existing concatenation and sampling path.
+
+    Args:
+        targets: Per-image target dictionaries containing ``masks`` tensors.
+        indices: Per-image matched source and target indices.
+        point_coords: Normalized coordinates with shape ``[matches, points, 2]``.
+
+    Returns:
+        Sampled float labels with shape ``[matches, points]``.
+
+    Examples:
+        >>> masks = torch.tensor([[[False, True], [True, False]]])
+        >>> matched = torch.tensor([0])
+        >>> coords = torch.tensor([[[0.75, 0.25]]])
+        >>> _sample_target_masks_at_points([{"masks": masks}], [(matched, matched)], coords)
+        tensor([[1.]])
+    """
+    use_direct = (
+        len(targets) == len(indices)
+        and point_coords.device.type == "cpu"
+        and point_coords.dtype == torch.float32
+        and point_coords.ndim == 3
+        and point_coords.shape[-1] == 2
+    )
+    mask_shape: tuple[int, int] | None = None
+    matched_mask_elements = 0
+    matched_count = 0
+    # The direct path pays a fixed per-image loop-iteration cost (slicing, index computation,
+    # a device transfer, a gather). A large AGGREGATE element count can hide many small per-image
+    # groups whose individual gather is too cheap to be worth that fixed cost -- tracking the
+    # smallest non-empty group lets the guard reject that case even though the total clears the floor.
+    # This alone is not enough: a single large mask (e.g. 300x300) with only one match per image
+    # clears the element floor on its own while doing negligible gather work, so the fixed
+    # per-iteration overhead dominates regardless of resolution -- measured a stable ~1.25-1.5x
+    # regression across 1-8 images, all with exactly one match per group. Tracking the smallest
+    # non-empty group's MATCH COUNT (independent of mask resolution) catches that case too.
+    min_group_elements: int | None = None
+    min_group_count: int | None = None
+
+    if use_direct:
+        for target, (_, target_indices) in zip(targets, indices):
+            masks = target.get("masks")
+            current_shape = (
+                (masks.shape[-2], masks.shape[-1]) if isinstance(masks, Tensor) and masks.ndim == 3 else None
+            )
+            if (
+                masks is None
+                or current_shape is None
+                or not masks.is_contiguous()
+                or masks.device != point_coords.device
+                or target_indices.device.type != "cpu"
+                or target_indices.dtype != torch.int64
+                or target_indices.ndim != 1
+                or (mask_shape is not None and current_shape != mask_shape)
+            ):
+                use_direct = False
+                break
+            mask_shape = current_shape
+            group_count = target_indices.numel()
+            matched_count += group_count
+            group_elements = group_count * current_shape[0] * current_shape[1]
+            matched_mask_elements += group_elements
+            if group_count > 0:
+                min_group_elements = (
+                    group_elements if min_group_elements is None else min(min_group_elements, group_elements)
+                )
+                min_group_count = group_count if min_group_count is None else min(min_group_count, group_count)
+
+    sampled_elements = point_coords.shape[0] * point_coords.shape[1] if point_coords.ndim == 3 else 0
+    use_direct = (
+        use_direct
+        and matched_count == point_coords.shape[0]
+        and matched_mask_elements >= _MIN_DIRECT_MASK_ELEMENTS
+        and matched_mask_elements >= _MIN_DIRECT_MASK_ELEMENTS_PER_POINT * sampled_elements
+        and (min_group_elements is None or min_group_elements >= _MIN_DIRECT_MASK_ELEMENTS)
+        and (min_group_count is None or min_group_count >= _MIN_DIRECT_MATCHES_PER_GROUP)
+    )
+
+    if use_direct:
+        use_direct = all(
+            not bool((target_indices < 0).any()) and not bool((target_indices >= target["masks"].shape[0]).any())
+            for target, (_, target_indices) in zip(targets, indices)
+        )
+
+    if use_direct:
+        sampled_masks = []
+        offset = 0
+        for target, (_, target_indices) in zip(targets, indices):
+            masks = target["masks"]
+            count = target_indices.numel()
+            coords = point_coords[offset : offset + count]
+            height, width = masks.shape[-2:]
+
+            # Reproduce point_sample's normalization order exactly before applying
+            # nearest-neighbor rounding and border padding.
+            grid = 2.0 * coords - 1.0
+            unnorm_x = ((grid[..., 0] + 1.0) * width - 1.0) / 2.0
+            unnorm_y = ((grid[..., 1] + 1.0) * height - 1.0) / 2.0
+            x_coords = torch.round(unnorm_x).to(torch.int64)
+            y_coords = torch.round(unnorm_y).to(torch.int64)
+            x_coords.clamp_(0, width - 1)
+            y_coords.clamp_(0, height - 1)
+
+            target_indices_device = target_indices.to(device=masks.device)
+            flat_indices = target_indices_device[:, None] * (height * width) + y_coords * width + x_coords
+            sampled = (
+                masks.reshape(-1).gather(0, flat_indices.reshape(-1)).reshape(count, point_coords.shape[1]).float()
+            )
+
+            # PyTorch's compiled grid_sampler kernel used by ``point_sample`` does not agree with
+            # ``torch.round`` on every (coordinate, mask size) combination at an exact pixel-center tie
+            # (fractional part == 0.5) -- both compute the same mathematical formula, but float32
+            # evaluation order inside the kernel can round a tie to the opposite integer for some sizes
+            # and not others (verified: it agrees for width=96, not for width=673, on the identical
+            # unnormalized value 0.5). A fine sweep around a known divergence found mismatches only where
+            # the computed value was bit-exact at the tie, never in its neighborhood, and 2,000,000 generic
+            # random coordinates produced zero mismatches -- so exact ties are the only risk, and real
+            # point sets of a few hundred points routinely contain one. Falling back to ``point_sample``
+            # for the WHOLE call over one tied point among thousands would give away most of this
+            # optimization's benefit for no reason: correct just the tied points instead.
+            is_tie = (unnorm_x - torch.floor(unnorm_x) == 0.5) | (unnorm_y - torch.floor(unnorm_y) == 0.5)
+            if bool(is_tie.any()):
+                tie_rows, tie_cols = is_tie.nonzero(as_tuple=True)
+                tie_masks = masks[target_indices_device[tie_rows]]
+                tie_coords = coords[tie_rows, tie_cols]
+                corrected = (
+                    point_sample(
+                        tie_masks.unsqueeze(1).float(),
+                        tie_coords.unsqueeze(1),
+                        align_corners=False,
+                        mode="nearest",
+                    )
+                    .squeeze(1)
+                    .squeeze(1)
+                )
+                sampled = sampled.clone()
+                sampled[tie_rows, tie_cols] = corrected.to(device=sampled.device)
+
+            sampled_masks.append(sampled)
+            offset += count
+
+        return torch.cat(sampled_masks, dim=0)
+
+    if (
+        point_coords.is_cuda
+        and point_coords.ndim == 3
+        and len(targets) == len(indices) > 1
+        and all(
+            target["masks"].ndim == 3
+            and target["masks"].dtype == torch.bool
+            and target["masks"].device == point_coords.device
+            and target["masks"].shape[1:] == targets[0]["masks"].shape[1:]
+            and target_indices.ndim == 1
+            and target_indices.dtype == torch.int64
+            for target, (_, target_indices) in zip(targets, indices)
+        )
+        and sum(target_indices.numel() for _, target_indices in indices) == point_coords.shape[0] > 0
+    ):
+        # Keep the native sampler's rounding. In loss_masks' no_grad context, each
+        # image's full float masks can be released before sampling the next image.
+        sampled_masks = []
+        offset = 0
+        for target, (_, target_indices) in zip(targets, indices):
+            count = target_indices.numel()
+            if count:
+                sampled_masks.append(
+                    point_sample(
+                        target["masks"][target_indices].unsqueeze(1).float(),
+                        point_coords[offset : offset + count],
+                        align_corners=False,
+                        mode="nearest",
+                    ).squeeze(1)
+                )
+            offset += count
+        return torch.cat(sampled_masks, dim=0)
+
+    target_masks = torch.cat([target["masks"][target_indices] for target, (_, target_indices) in zip(targets, indices)])
+    return point_sample(
+        target_masks.unsqueeze(1).float(),
+        point_coords,
+        align_corners=False,
+        mode="nearest",
+    ).squeeze(1)
+
+
+class _MatchedTargets(NamedTuple):
+    """Indices and target tensors shared by detection losses for one output layer.
+
+    ``loss_labels`` and ``loss_boxes`` consume the same matched labels, boxes, and source indices. Keeping them together
+    avoids rebuilding those tensors for each loss without changing their per-layer lifetime or ordering.
+    """
+
+    source_indices: tuple[Tensor, Tensor]
+    labels: Tensor
+    boxes: Tensor
+
+
+def sigmoid_focal_loss(
+    inputs: Tensor,
+    targets: Tensor,
+    num_boxes: Tensor,
+    alpha: float = 0.25,
+    gamma: float = 2,
+) -> Tensor:
+    """
+    Loss used in RetinaNet for dense detection: https://arxiv.org/abs/1708.02002.
+
+    Args:
+        inputs: A float tensor of arbitrary shape.
+                The predictions for each example.
+        targets: A float tensor with the same shape as inputs. Stores the binary
+                 classification label for each element in inputs
+                (0 for the negative class and 1 for the positive class).
+        alpha: (optional) Weighting factor in range (0,1) to balance
+                positive vs negative examples. Default = 0.25.
+        gamma: Exponent of the modulating factor (1 - p_t) to
+               balance easy vs hard examples.
+
+    Returns:
+        Loss tensor
+    """
+    prob = inputs.sigmoid()
+    ce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
+    p_t = prob * targets + (1 - prob) * (1 - targets)
+    loss = ce_loss * ((1 - p_t) ** gamma)
+
+    if alpha >= 0:
+        alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
+        loss = alpha_t * loss
+
+    result: Tensor = loss.mean(1).sum() / num_boxes
+    return result
+
+
+def sigmoid_varifocal_loss(
+    inputs: Tensor,
+    targets: Tensor,
+    num_boxes: Tensor,
+    alpha: float = 0.25,
+    gamma: float = 2,
+) -> Tensor:
+    prob = inputs.sigmoid()
+    focal_weight = (
+        targets * (targets > 0.0).float() + (1 - alpha) * (prob - targets).abs().pow(gamma) * (targets <= 0.0).float()
+    )
+    ce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
+    loss = ce_loss * focal_weight
+
+    return loss.mean(1).sum() / num_boxes
+
+
+def position_supervised_loss(
+    inputs: Tensor,
+    targets: Tensor,
+    num_boxes: Tensor,
+    alpha: float = 0.25,
+    gamma: float = 2,
+) -> Tensor:
+    prob = inputs.sigmoid()
+    ce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
+    loss = ce_loss * (torch.abs(targets - prob) ** gamma)
+
+    if alpha >= 0:
+        alpha_t = alpha * (targets > 0.0).float() + (1 - alpha) * (targets <= 0.0).float()
+        loss = alpha_t * loss
+
+    return loss.mean(1).sum() / num_boxes
+
+
+def dice_loss(
+    inputs: Tensor,
+    targets: Tensor,
+    num_masks: Union[Tensor, float, int],
+) -> Tensor:
+    """Compute the DICE loss, similar to generalized IOU for masks.
+
+    Args:
+        inputs: A float tensor of arbitrary shape.
+                The predictions for each example.
+        targets: A float tensor with the same shape as inputs. Stores the binary
+                 classification label for each element in inputs
+                (0 for the negative class and 1 for the positive class).
+        num_masks: Normalizing denominator. Pass a Tensor to keep it on-device so the
+                 caller never has to sync it to the host (a host read cuts XLA's lazy
+                 graph every step). This eager function accepts Python and NumPy scalars.
+                 On Python 3.10–3.13, the scripted ``dice_loss_jit`` wrapper accepts only
+                 Tensor, float, or int; on Python 3.14+, it is this eager function.
+    """
+    inputs = inputs.sigmoid()
+    inputs = inputs.flatten(1)
+    numerator = 2 * (inputs * targets).sum(-1)
+    denominator = inputs.sum(-1) + targets.sum(-1)
+    loss = 1 - (numerator + 1) / (denominator + 1)
+    # Branch on the denominator's type instead of normalizing it to a Tensor up front: wrapping a
+    # Python float in a Tensor first would quantize it to `inputs`' dtype before dividing, which is
+    # not what plain ``tensor / python_float`` does (that keeps the historical re-exported functions'
+    # exact numerics -- see TestMaskLossDenominatorStaysOnDevice's backward-compatibility tests).
+    # TorchScript requires this refinement to resolve division over the three-way Union.
+    if isinstance(num_masks, float):
+        result: Tensor = loss.sum() / num_masks
+    elif isinstance(num_masks, int):
+        result = loss.sum() / num_masks
+    else:
+        result = loss.sum() / num_masks
+    return result
+
+
+#: Preserve the historical scripted alias until Python 3.14 makes TorchScript
+#: unsupported during import, where the eager function is the safe fallback.
+dice_loss_jit = dice_loss if sys.version_info >= (3, 14) else torch.jit.script(dice_loss)
+
+
+def sigmoid_ce_loss(
+    inputs: Tensor,
+    targets: Tensor,
+    num_masks: Union[Tensor, float, int],
+) -> Tensor:
+    """Compute sigmoid cross-entropy loss for mask predictions.
+    Args:
+        inputs: A float tensor of arbitrary shape.
+                The predictions for each example.
+        targets: A float tensor with the same shape as inputs. Stores the binary
+                 classification label for each element in inputs
+                (0 for the negative class and 1 for the positive class).
+        num_masks: Normalizing denominator. Pass a Tensor to keep it on-device so the
+                 caller never has to sync it to the host (a host read cuts XLA's lazy
+                 graph every step). This eager function accepts Python and NumPy scalars.
+                 On Python 3.10–3.13, the scripted ``sigmoid_ce_loss_jit`` wrapper accepts
+                 only Tensor, float, or int; on Python 3.14+, it is this eager function.
+
+    Returns:
+        Loss tensor
+    """
+    loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
+
+    # See dice_loss's comment: this preserves exact eager numerics and lets
+    # TorchScript resolve division over the three-way Union.
+    if isinstance(num_masks, float):
+        result: Tensor = loss.mean(1).sum() / num_masks
+    elif isinstance(num_masks, int):
+        result = loss.mean(1).sum() / num_masks
+    else:
+        result = loss.mean(1).sum() / num_masks
+    return result
+
+
+#: Backward-compatible alias; see ``dice_loss_jit``.
+sigmoid_ce_loss_jit = sigmoid_ce_loss if sys.version_info >= (3, 14) else torch.jit.script(sigmoid_ce_loss)
+
+
+class SetCriterion(nn.Module):
+    """This class computes the loss for Conditional DETR.
+
+    The process happens in two steps:
+    1) we compute Hungarian assignment between ground truth boxes and the outputs of the model.
+    2) we supervise each pair of matched ground-truth / prediction (supervise class and box).
+    """
+
+    # Signals that forward() accepts an explicit num_boxes denominator and exposes
+    # num_boxes_for_targets() for cross-microbatch accumulation.  Subclasses that
+    # override forward() with the legacy 2-arg signature should set this to False so
+    # RFDETRModelModule._compute_train_losses() can skip the kwarg.
+    supports_loss_normalizer_override: bool = True
+
+    def __init__(
+        self,
+        num_classes: int,
+        matcher: HungarianMatcher,
+        weight_dict: dict[str, float],
+        focal_alpha: float,
+        losses: list[str],
+        group_detr: int = 1,
+        sum_group_losses: bool = False,
+        use_varifocal_loss: bool = False,
+        use_position_supervised_loss: bool = False,
+        ia_bce_loss: bool = False,
+        mask_point_sample_ratio: int = 16,
+        num_keypoints_per_class: list[int] | None = None,
+    ) -> None:
+        """Create the criterion.
+
+        Parameters:
+            num_classes: number of object categories, omitting the special no-object category
+            matcher: module able to compute a matching between targets and proposals
+            weight_dict: dict containing as key the names of the losses and as values their relative weight.
+            losses: list of all the losses to be applied. See get_loss for list of available losses.
+            focal_alpha: alpha in Focal Loss
+            group_detr: Number of groups to speed detr training. Default is 1.
+        """
+        super().__init__()
+        self.num_classes = num_classes
+        self.matcher = matcher
+        self.weight_dict = weight_dict
+        self.losses = losses
+        self.focal_alpha = focal_alpha
+        self.group_detr = group_detr
+        self.sum_group_losses = sum_group_losses
+        self.use_varifocal_loss = use_varifocal_loss
+        self.use_position_supervised_loss = use_position_supervised_loss
+        self.ia_bce_loss = ia_bce_loss
+        self.mask_point_sample_ratio = mask_point_sample_ratio
+        self.num_keypoints_per_class = num_keypoints_per_class or []
+        self._compile_batched_detection_losses = False
+        self._compiled_batched_detection_losses: Callable[..., tuple[Tensor, Tensor, Tensor, Tensor]] | None = None
+
+    @staticmethod
+    def _output_device(outputs: dict[str, Any]) -> torch.device:
+        """Return the device used by tensor outputs.
+
+        Args:
+            outputs: Model output dictionary. Top-level values are probed for tensors;
+                nested structures (lists, nested dicts) are not traversed.
+
+        Returns:
+            Device of the first tensor value found in ``outputs``.
+
+        Raises:
+            ValueError: If no tensor output is present.
+        """
+        for value in outputs.values():
+            if torch.is_tensor(value):
+                return value.device
+        raise ValueError("SetCriterion requires at least one tensor output to infer the loss device.")
+
+    def num_boxes_for_targets(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+    ) -> Tensor:
+        """Compute the distributed target-box denominator for a target batch.
+
+        The denominator is the total number of ground-truth boxes in the batch, multiplied by the active number of
+        DETR groups (unless ``sum_group_losses`` collapses them), reduced across all distributed ranks, divided by the
+        world size, and finally clamped to be at least ``1.0`` so divide-by-zero never occurs on empty batches.
+
+        Args:
+            outputs: Model output dictionary; used only to infer the device for the
+                returned scalar tensor.
+            targets: Per-image target dictionaries for the current batch. Each must
+                contain a ``"labels"`` tensor whose length equals the number of
+                ground-truth boxes for that image.
+
+        Returns:
+            Scalar tensor on the same device as the model outputs, holding the
+            average box-count denominator used to normalize criterion losses.
+
+        Note:
+            When ``torch.distributed`` is initialized this method performs an
+            in-place ``all_reduce`` collective on the returned tensor. Every rank
+            must reach this call together or the program will deadlock.
+
+        Note:
+            ``group_detr`` is multiplied in only when ``self.training`` is ``True``.
+            During evaluation (``self.training`` is ``False``) the denominator
+            collapses to a single group, so train-time and eval-time normalizers
+            cannot be compared directly.
+
+        Examples:
+            >>> import torch
+            >>> from rfdetr.models.criterion import SetCriterion
+            >>> criterion = SetCriterion.__new__(SetCriterion)
+            >>> criterion.training = False
+            >>> criterion.group_detr = 1
+            >>> criterion.sum_group_losses = False
+            >>> outputs = {"pred_logits": torch.zeros(1, 1, 1)}
+            >>> targets = [{"labels": torch.tensor([0, 1, 2])}]
+            >>> criterion.num_boxes_for_targets(outputs, targets).item()
+            3.0
+        """
+        group_detr = self.group_detr if self.training else 1
+        if targets and "valid" in targets[0]:
+            # Fixed-size target padding: only the real rows count toward the denominator, and the
+            # count is kept as a device tensor so reading it never syncs to the host.
+            num_boxes_tensor = (
+                torch.stack([target["valid"].sum() for target in targets])
+                .sum()
+                .to(dtype=torch.float, device=self._output_device(outputs))
+            )
+            if not self.sum_group_losses:
+                num_boxes_tensor = num_boxes_tensor * group_detr
+        else:
+            num_boxes = sum(len(t["labels"]) for t in targets)
+            if not self.sum_group_losses:
+                num_boxes = num_boxes * group_detr
+            num_boxes_tensor = torch.as_tensor(num_boxes, dtype=torch.float, device=self._output_device(outputs))
+        if is_dist_avail_and_initialized():
+            torch.distributed.all_reduce(num_boxes_tensor)
+        return torch.clamp(num_boxes_tensor / get_world_size(), min=1.0)
+
+    def loss_labels(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        indices: list[tuple[Tensor, Tensor]],
+        num_boxes: Tensor,
+        log: bool = True,
+        matched_targets: _MatchedTargets | None = None,
+    ) -> dict[str, Tensor]:
+        """Classification loss (Binary focal loss) targets dicts must contain the key "labels" containing a tensor of
+        dim [nb_target_boxes]"""
+        assert "pred_logits" in outputs
+        src_logits = outputs["pred_logits"]
+        valid_mask = self._matched_valid_mask(targets, indices)
+        if valid_mask is not None and not self.ia_bce_loss:
+            raise NotImplementedError(
+                "Fixed-size target padding masks padded pairs only in the IoU-aware BCE classification "
+                "branch (ia_bce_loss=True, which is the TrainConfig default). The position-supervised, "
+                "varifocal and plain focal branches would count the padding as real matches."
+            )
+
+        if matched_targets is None:
+            idx = self._get_src_permutation_idx(indices)
+            target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
+            target_boxes = None
+        else:
+            idx = matched_targets.source_indices
+            target_classes_o = matched_targets.labels
+            target_boxes = matched_targets.boxes
+
+        if self.ia_bce_loss:
+            if target_boxes is None:
+                target_boxes = torch.cat([t["boxes"][i] for t, (_, i) in zip(targets, indices)], dim=0)
+            alpha = self.focal_alpha
+            gamma = 2
+            src_boxes = outputs["pred_boxes"][idx]
+            iou_targets, _ = box_ops.elementwise_box_iou(
+                box_ops.box_cxcywh_to_xyxy(src_boxes.detach()),
+                box_ops.box_cxcywh_to_xyxy(target_boxes),
+            )
+            pos_ious = iou_targets.clone().detach()
+            prob = src_logits.sigmoid()
+            # init positive weights and negative weights
+            pos_weights = torch.zeros_like(src_logits)
+            neg_weights = prob**gamma
+
+            pos_ind = list(idx)
+            pos_ind.append(target_classes_o)
+
+            t = prob[tuple(pos_ind)].pow(alpha) * pos_ious.pow(1 - alpha)
+            t = torch.clamp(t, 0.01).detach()
+
+            if valid_mask is None:
+                pos_weights[tuple(pos_ind)] = t.to(pos_weights.dtype)
+                neg_weights[tuple(pos_ind)] = 1 - t.to(neg_weights.dtype)
+            else:
+                # A query matched to a filler target is really unmatched: it must keep the plain
+                # ``prob ** gamma`` negative weight it was initialised with, not the 1 - t a real
+                # match would write, and contribute no positive weight at all.
+                keep = valid_mask.to(torch.bool)
+                pos_weights[tuple(pos_ind)] = (t * valid_mask).to(pos_weights.dtype)
+                neg_weights[tuple(pos_ind)] = torch.where(
+                    keep, (1 - t).to(neg_weights.dtype), neg_weights[tuple(pos_ind)]
+                )
+            # a reformulation of the standard loss_ce = - pos_weights * prob.log() - neg_weights * (1 - prob).log()
+            # with a focus on statistical stability by using fused logsigmoid
+            loss_ce = neg_weights * src_logits - F.logsigmoid(src_logits) * (pos_weights + neg_weights)
+            loss_ce = loss_ce.sum() / num_boxes
+
+        elif self.use_position_supervised_loss:
+            if target_boxes is None:
+                target_boxes = torch.cat([t["boxes"][i] for t, (_, i) in zip(targets, indices)], dim=0)
+            src_boxes = outputs["pred_boxes"][idx]
+            iou_targets, _ = box_ops.elementwise_box_iou(
+                box_ops.box_cxcywh_to_xyxy(src_boxes.detach()),
+                box_ops.box_cxcywh_to_xyxy(target_boxes),
+            )
+            pos_ious = iou_targets.clone().detach()
+            # pos_ious_func = pos_ious ** 2
+            pos_ious_func = pos_ious
+
+            cls_iou_func_targets = torch.zeros(
+                (src_logits.shape[0], src_logits.shape[1], self.num_classes),
+                dtype=src_logits.dtype,
+                device=src_logits.device,
+            )
+
+            pos_ind = list(idx)
+            pos_ind.append(target_classes_o)
+            pos_ious_func = pos_ious_func.to(cls_iou_func_targets.dtype)
+            cls_iou_func_targets[tuple(pos_ind)] = pos_ious_func
+            norm_cls_iou_func_targets = cls_iou_func_targets / (
+                cls_iou_func_targets.view(cls_iou_func_targets.shape[0], -1, 1).amax(1, True) + 1e-8
+            )
+            loss_ce = (
+                position_supervised_loss(
+                    src_logits,
+                    norm_cls_iou_func_targets,
+                    num_boxes,
+                    alpha=self.focal_alpha,
+                    gamma=2,
+                )
+                * src_logits.shape[1]
+            )
+
+        elif self.use_varifocal_loss:
+            src_boxes = outputs["pred_boxes"][idx]
+            if target_boxes is None:
+                target_boxes = torch.cat([t["boxes"][i] for t, (_, i) in zip(targets, indices)], dim=0)
+
+            iou_targets, _ = box_ops.elementwise_box_iou(
+                box_ops.box_cxcywh_to_xyxy(src_boxes.detach()),
+                box_ops.box_cxcywh_to_xyxy(target_boxes),
+            )
+            pos_ious = iou_targets.clone().detach()
+
+            cls_iou_targets = torch.zeros(
+                (src_logits.shape[0], src_logits.shape[1], self.num_classes),
+                dtype=src_logits.dtype,
+                device=src_logits.device,
+            )
+
+            pos_ind = list(idx)
+            pos_ind.append(target_classes_o)
+            cls_iou_targets[tuple(pos_ind)] = pos_ious
+            loss_ce = (
+                sigmoid_varifocal_loss(
+                    src_logits,
+                    cls_iou_targets,
+                    num_boxes,
+                    alpha=self.focal_alpha,
+                    gamma=2,
+                )
+                * src_logits.shape[1]
+            )
+        else:
+            target_classes = torch.full(
+                src_logits.shape[:2],
+                self.num_classes,
+                dtype=torch.int64,
+                device=src_logits.device,
+            )
+            target_classes[idx] = target_classes_o
+
+            target_classes_onehot = torch.zeros(
+                [src_logits.shape[0], src_logits.shape[1], src_logits.shape[2] + 1],
+                dtype=src_logits.dtype,
+                layout=src_logits.layout,
+                device=src_logits.device,
+            )
+            target_classes_onehot.scatter_(2, target_classes.unsqueeze(-1), 1)
+
+            target_classes_onehot = target_classes_onehot[:, :, :-1]
+            loss_ce = (
+                sigmoid_focal_loss(
+                    src_logits,
+                    target_classes_onehot,
+                    num_boxes,
+                    alpha=self.focal_alpha,
+                    gamma=2,
+                )
+                * src_logits.shape[1]
+            )
+        losses = {"loss_ce": loss_ce}
+
+        if log:
+            # TODO this should probably be a separate loss, not hacked in this one here
+            if valid_mask is None:
+                losses["class_error"] = 100 - accuracy(src_logits[idx], target_classes_o)[0]
+            else:
+                # Selecting the real pairs would make this tensor's shape depend on the box count
+                # again, which is the whole thing padding exists to avoid -- so weight them out.
+                # Equivalent to accuracy(..., topk=(1,)) restricted to the real matches.
+                correct = (src_logits[idx].argmax(dim=-1) == target_classes_o).to(valid_mask.dtype)
+                losses["class_error"] = 100 - 100 * (correct * valid_mask).sum() / valid_mask.sum().clamp(min=1)
+        return losses
+
+    @torch.no_grad()
+    def loss_cardinality(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        indices: list[tuple[Tensor, Tensor]],
+        num_boxes: Tensor,
+    ) -> dict[str, Tensor]:
+        """Compute the cardinality error, ie the absolute error in the number of predicted non-empty boxes This is not
+        really a loss, it is intended for logging purposes only.
+
+        It doesn't propagate gradients
+        """
+        pred_logits = outputs["pred_logits"]
+        device = pred_logits.device
+        if targets and "valid" in targets[0]:
+            # Fixed-size target padding (pad_targets_to) pads every "labels" row count to the same
+            # constant, so len() would report a constant error against a constant instead of the real
+            # ground-truth count -- "valid" marks which rows are real. Stacking the per-image device
+            # scalars (as num_boxes_for_targets does) and moving the whole batch in one transfer keeps
+            # this on device; an int() per image would read each one back to the host instead, cutting
+            # XLA's lazy graph every layer, every step.
+            tgt_lengths = torch.stack([v["valid"].sum() for v in targets]).to(device=device)
+        else:
+            tgt_lengths = torch.as_tensor([len(v["labels"]) for v in targets], device=device)
+        # Sigmoid/focal heads have no background class; count predictions whose top score is confident
+        card_pred = (pred_logits.sigmoid().max(-1).values > 0.5).sum(1)
+        card_err = F.l1_loss(card_pred.float(), tgt_lengths.float())
+        losses = {"cardinality_error": card_err}
+        return losses
+
+    def loss_boxes(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        indices: list[tuple[Tensor, Tensor]],
+        num_boxes: Tensor,
+        matched_targets: _MatchedTargets | None = None,
+    ) -> dict[str, Tensor]:
+        """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss targets dicts must
+        contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4] The target boxes are expected in format
+        (center_x, center_y, w, h), normalized by the image size."""
+        assert "pred_boxes" in outputs
+        idx = self._get_src_permutation_idx(indices) if matched_targets is None else matched_targets.source_indices
+        src_boxes = outputs["pred_boxes"][idx]
+        target_boxes = (
+            torch.cat([t["boxes"][i] for t, (_, i) in zip(targets, indices)], dim=0)
+            if matched_targets is None
+            else matched_targets.boxes
+        )
+
+        loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction="none")
+        valid_mask = self._matched_valid_mask(targets, indices)
+        if valid_mask is not None:
+            loss_bbox = loss_bbox * valid_mask[:, None]
+
+        losses = {}
+        losses["loss_bbox"] = loss_bbox.sum() / num_boxes
+
+        loss_giou = 1 - box_ops.elementwise_generalized_box_iou(
+            box_ops.box_cxcywh_to_xyxy(src_boxes),
+            box_ops.box_cxcywh_to_xyxy(target_boxes),
+        )
+        if valid_mask is not None:
+            loss_giou = loss_giou * valid_mask
+        losses["loss_giou"] = loss_giou.sum() / num_boxes
+        return losses
+
+    def loss_masks(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        indices: list[tuple[Tensor, Tensor]],
+        num_boxes: Tensor,
+    ) -> dict[str, Tensor]:
+        """Compute BCE-with-logits and Dice losses for segmentation masks on matched pairs.
+
+        Expects outputs to contain 'pred_masks' of shape [B, Q, H, W] and targets with key 'masks'.
+        """
+        assert "pred_masks" in outputs, "pred_masks missing in model outputs"
+        if targets and "valid" in targets[0]:
+            raise NotImplementedError(
+                "Fixed-size target padding does not cover the mask loss yet: loss_masks point-samples "
+                "every matched pair, so the filler pairs would contribute real gradient. Leave "
+                "pad_targets_to unset for segmentation training."
+            )
+        idx = self._get_src_permutation_idx(indices)
+        pred_masks = outputs["pred_masks"]  # [B, Q, H, W]
+
+        if isinstance(pred_masks, Tensor):
+            # gather matched prediction masks
+            # handle no matches
+            src_masks = pred_masks[idx]  # [N, H, W]
+        else:
+            spatial_features = outputs["pred_masks"]["spatial_features"]
+            query_features = outputs["pred_masks"]["query_features"]
+            bias = outputs["pred_masks"]["bias"]
+            # No matches: return a zero loss that still flows through the segmentation-head
+            # outputs, so every parameter stays connected in the autograd graph (required for
+            # DDP, which errors on parameters that receive no gradient).
+            if idx[0].numel() == 0:
+                zero = (spatial_features.sum() + query_features.sum() + bias.sum()) * 0.0
+                return {"loss_mask_ce": zero, "loss_mask_dice": zero}
+            else:
+                batched_selected_masks = []
+                per_batch_counts = idx[0].unique(return_counts=True)[1]  # type: ignore[no-untyped-call]
+                batch_indices = torch.cat((torch.zeros_like(per_batch_counts[:1]), per_batch_counts), dim=0).cumsum(0)
+
+                for i in range(per_batch_counts.shape[0]):
+                    batch_indicator = idx[0][batch_indices[i] : batch_indices[i + 1]]
+                    box_indicator = idx[1][batch_indices[i] : batch_indices[i + 1]]
+
+                    this_batch_queries = query_features[(batch_indicator, box_indicator)]
+                    this_batch_spatial_features = spatial_features[idx[0][batch_indices[i + 1] - 1]]
+
+                    this_batch_masks = (
+                        torch.einsum(
+                            "chw,nc->nhw",
+                            this_batch_spatial_features,
+                            this_batch_queries,
+                        )
+                        + bias
+                    )
+
+                    batched_selected_masks.append(this_batch_masks)
+
+                src_masks = torch.cat(batched_selected_masks)
+
+        if src_masks.numel() == 0:
+            return {
+                "loss_mask_ce": src_masks.sum(),
+                "loss_mask_dice": src_masks.sum(),
+            }
+        # No need to upsample predictions as we are using normalized coordinates :)
+        # N x 1 x H x W
+        src_masks = src_masks.unsqueeze(1)
+
+        num_points = max(
+            src_masks.shape[-2],
+            src_masks.shape[-2] * src_masks.shape[-1] // self.mask_point_sample_ratio,
+        )
+
+        with torch.no_grad():
+            # sample point_coords
+            point_coords = get_uncertain_point_coords_with_randomness(
+                src_masks,
+                lambda logits: calculate_uncertainty(logits),
+                num_points,
+                3,
+                0.75,
+            )
+
+        point_logits = point_sample(
+            src_masks,
+            point_coords,
+            align_corners=False,
+        ).squeeze(1)
+
+        with torch.no_grad():
+            # get gt labels
+            point_labels = _sample_target_masks_at_points(targets, indices, point_coords)
+
+        # Both losses take the denominator as a Tensor, so ``num_boxes`` -- all-reduced
+        # across distributed ranks by ``num_boxes_for_targets``, or an explicit
+        # grad-accum-aware override supplied by a manual-optimization caller -- is handed
+        # straight through.  Unwrapping it to a Python scalar here forced a device-to-host
+        # sync on every call to ``loss_masks``, once per matched output layer (the final
+        # layer plus every aux and enc layer, i.e. several times per training step for a
+        # segmentation model), cutting XLA's lazy graph each time.
+        losses = {
+            "loss_mask_ce": sigmoid_ce_loss_jit(point_logits, point_labels, num_boxes),
+            "loss_mask_dice": dice_loss_jit(point_logits, point_labels, num_boxes),
+        }
+
+        del src_masks
+        return losses
+
+    def loss_keypoints(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        indices: list[tuple[Tensor, Tensor]],
+        num_boxes: Tensor,
+    ) -> dict[str, Tensor]:
+        """Compute keypoint losses on matched prediction/target pairs."""
+        assert "pred_keypoints" in outputs
+        if targets and "valid" in targets[0]:
+            raise NotImplementedError(
+                "Fixed-size target padding does not cover the keypoint loss yet: loss_keypoints "
+                "reads every matched pair with no valid-row mask, so the filler pairs would "
+                "contribute real gradient. Leave pad_targets_to unset for keypoint training."
+            )
+        idx = self._get_src_permutation_idx(indices)
+        src_keypoints = outputs["pred_keypoints"][idx]
+        target_keypoints = torch.cat([target["keypoints"][j] for target, (_, j) in zip(targets, indices)], dim=0)
+        target_classes = torch.cat([target["labels"][j] for target, (_, j) in zip(targets, indices)], dim=0)
+        target_boxes = torch.cat([target["boxes"][j] for target, (_, j) in zip(targets, indices)], dim=0)
+        target_areas = target_boxes[:, 2] * target_boxes[:, 3]
+
+        loss_l1, loss_findable, loss_visible, loss_nll = compute_l1_keypoint_loss(
+            all_pred_keypoints=src_keypoints,
+            target_keypoints=target_keypoints.to(src_keypoints.device),
+            target_classes=target_classes.to(src_keypoints.device),
+            target_areas=target_areas.to(src_keypoints.device),
+            num_keypoints_per_class=self.num_keypoints_per_class,
+        )
+
+        return {
+            "loss_keypoints_l1": loss_l1.sum() / num_boxes,
+            "loss_keypoints_findable": loss_findable.sum() / num_boxes,
+            "loss_keypoints_visible": loss_visible.sum() / num_boxes,
+            "loss_keypoints_nll": loss_nll.sum() / num_boxes,
+        }
+
+    def _get_src_permutation_idx(self, indices: list[tuple[Tensor, Tensor]]) -> tuple[Tensor, Tensor]:
+        # permute predictions following indices
+        batch_idx = torch.cat([torch.full_like(src, i) for i, (src, _) in enumerate(indices)])
+        src_idx = torch.cat([src for (src, _) in indices])
+        return batch_idx, src_idx
+
+    def _get_matched_targets(
+        self, targets: list[dict[str, Tensor]], indices: list[tuple[Tensor, Tensor]]
+    ) -> _MatchedTargets:
+        """Collect matched detection targets for losses sharing one layer's indices.
+
+        Args:
+            targets: Per-image target dictionaries in batch order.
+            indices: Per-image matcher results, where each pair contains source
+                query indices and their corresponding target indices.
+
+        Returns:
+            Matched targets containing ``source_indices``, ``labels``, and
+            ``boxes``. The tensors are concatenated across images in the same
+            order as ``indices`` and ``targets``, so all three fields use the
+            same flattened batch-of-matches ordering. Callers must not reorder
+            one field without applying the same reordering to the others.
+        """
+        return _MatchedTargets(
+            source_indices=self._get_src_permutation_idx(indices),
+            labels=torch.cat(
+                [target["labels"][target_indices] for target, (_, target_indices) in zip(targets, indices)]
+            ),
+            boxes=torch.cat([target["boxes"][target_indices] for target, (_, target_indices) in zip(targets, indices)]),
+        )
+
+    @staticmethod
+    def _matched_valid_mask(targets: list[dict[str, Tensor]], indices: list[tuple[Tensor, Tensor]]) -> Tensor | None:
+        """Per-matched-pair mask marking which pairs point at a real target rather than padding.
+
+        Returns ``None`` when the batch carries no ``valid`` key, which is every batch that did not go
+        through fixed-size target padding -- so the unpadded path keeps its exact previous arithmetic.
+
+        Args:
+            targets: Per-image target dictionaries in batch order.
+            indices: Per-image matcher results, source and target indices.
+
+        Returns:
+            A float mask flattened in the same order as the matched tensors, or ``None``.
+
+        Examples:
+            >>> SetCriterion._matched_valid_mask([{"labels": torch.zeros(1)}], [(torch.zeros(1), torch.zeros(1))])
+        """
+        if not targets or "valid" not in targets[0]:
+            return None
+        return torch.cat(
+            [target["valid"][target_indices] for target, (_, target_indices) in zip(targets, indices)]
+        ).float()
+
+    def _get_tgt_permutation_idx(self, indices: list[tuple[Tensor, Tensor]]) -> tuple[Tensor, Tensor]:
+        # permute targets following indices
+        batch_idx = torch.cat([torch.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)])
+        tgt_idx = torch.cat([tgt for (_, tgt) in indices])
+        return batch_idx, tgt_idx
+
+    def _can_batch_detection_losses(
+        self,
+        matched_outputs: list[dict[str, Any]],
+        matched_targets: list[_MatchedTargets],
+    ) -> bool:
+        """Return whether the stock IA-BCE detection losses can share one layer-batched execution.
+
+        Args:
+            matched_outputs: Final, auxiliary, and encoder output dictionaries.
+            matched_targets: Target tensors already gathered for each output layer.
+
+        Returns:
+            Whether every layer satisfies the stock detection fast path's shape, dtype, and ownership constraints.
+        """
+        if (
+            type(self) is not SetCriterion
+            or not getattr(self, "_compile_batched_detection_losses", False)
+            or not getattr(self, "ia_bce_loss", False)
+            or getattr(self, "losses", []) != ["labels", "boxes", "cardinality"]
+            or len(matched_outputs) < 2
+            or len(matched_targets) != len(matched_outputs)
+        ):
+            return False
+        logits = matched_outputs[0].get("pred_logits")
+        boxes = matched_outputs[0].get("pred_boxes")
+        if (
+            not isinstance(logits, Tensor)
+            or not isinstance(boxes, Tensor)
+            or logits.device.type != "cuda"
+            or boxes.device.type != "cuda"
+        ):
+            return False
+        matched_shape = matched_targets[0].labels.shape
+        return all(
+            isinstance(layer.get("pred_logits"), Tensor)
+            and isinstance(layer.get("pred_boxes"), Tensor)
+            and layer["pred_logits"].shape == logits.shape
+            and layer["pred_logits"].dtype == logits.dtype
+            and layer["pred_logits"].device == logits.device
+            and layer["pred_boxes"].shape == boxes.shape
+            and layer["pred_boxes"].dtype == boxes.dtype
+            and layer["pred_boxes"].device == boxes.device
+            and targets.labels.shape == matched_shape
+            for layer, targets in zip(matched_outputs, matched_targets, strict=True)
+        )
+
+    def _get_batched_detection_losses(
+        self,
+        matched_outputs: list[dict[str, Any]],
+        targets: list[dict[str, Tensor]],
+        all_indices: list[list[tuple[Tensor, Tensor]]],
+        matched_targets: list[_MatchedTargets],
+        num_boxes: Tensor,
+    ) -> list[dict[str, Tensor]]:
+        """Evaluate the default IA-BCE detection losses across output layers in one set of kernels.
+
+        Args:
+            matched_outputs: Shape-compatible final, auxiliary, and encoder outputs.
+            targets: Per-image target dictionaries shared by every output layer.
+            all_indices: Per-layer matcher results in the same order as ``matched_outputs``.
+            matched_targets: Per-layer target tensors gathered from ``all_indices``.
+            num_boxes: Shared normalization denominator for every layer.
+
+        Returns:
+            One unsuffixed loss dictionary per output layer. The caller adds the layer suffixes.
+        """
+        logits = torch.stack([layer["pred_logits"] for layer in matched_outputs])
+        boxes = torch.stack([layer["pred_boxes"] for layer in matched_outputs])
+        batch_indices = torch.stack([matched.source_indices[0] for matched in matched_targets])
+        source_indices = torch.stack([matched.source_indices[1] for matched in matched_targets])
+        target_labels = torch.stack([matched.labels for matched in matched_targets])
+        target_boxes = torch.stack([matched.boxes for matched in matched_targets])
+        valid_masks = [self._matched_valid_mask(targets, indices) for indices in all_indices]
+        if valid_masks[0] is None:
+            stacked_valid_mask = torch.ones_like(target_labels, dtype=boxes.dtype)
+        else:
+            stacked_valid_mask = torch.stack([mask for mask in valid_masks if mask is not None])
+        if targets and "valid" in targets[0]:
+            target_lengths = torch.stack([target["valid"].sum() for target in targets]).to(device=logits.device)
+        else:
+            target_lengths = torch.as_tensor([len(target["labels"]) for target in targets], device=logits.device)
+        loss_tensor_fn = self._resolve_batched_detection_losses(logits.device)
+        loss_ce, loss_bbox, loss_giou, cardinality_error = loss_tensor_fn(
+            logits,
+            boxes,
+            batch_indices,
+            source_indices,
+            target_labels,
+            target_boxes,
+            stacked_valid_mask,
+            target_lengths,
+            num_boxes,
+            self.focal_alpha,
+        )
+
+        layer_losses = []
+        for layer_index, (layer_outputs, matched) in enumerate(zip(matched_outputs, matched_targets, strict=True)):
+            losses = {
+                "loss_ce": loss_ce[layer_index],
+                "loss_bbox": loss_bbox[layer_index],
+                "loss_giou": loss_giou[layer_index],
+                "cardinality_error": cardinality_error[layer_index],
+            }
+            if layer_index == 0:
+                valid_mask = valid_masks[0]
+                if valid_mask is None:
+                    losses["class_error"] = (
+                        100 - accuracy(layer_outputs["pred_logits"][matched.source_indices], matched.labels)[0]
+                    )
+                else:
+                    correct = (
+                        layer_outputs["pred_logits"][matched.source_indices].argmax(dim=-1) == matched.labels
+                    ).to(valid_mask.dtype)
+                    losses["class_error"] = 100 - 100 * (correct * valid_mask).sum() / valid_mask.sum().clamp(min=1)
+            layer_losses.append(losses)
+        return layer_losses
+
+    def enable_compiled_detection_losses(self) -> None:
+        """Enable the CUDA layer-batched loss graph for a compiled model."""
+        self._compile_batched_detection_losses = True
+
+    def _resolve_batched_detection_losses(
+        self, device: torch.device
+    ) -> Callable[..., tuple[Tensor, Tensor, Tensor, Tensor]]:
+        """Return the eager tensor kernel off CUDA and a lazily compiled function on CUDA.
+
+        Args:
+            device: Device holding the stacked output layers.
+
+        Returns:
+            The eager tensor function, or its cached dynamic-shape Inductor wrapper on CUDA.
+        """
+        if device.type != "cuda":
+            return _batched_detection_loss_tensors
+        if self._compiled_batched_detection_losses is None:
+            # Deliberately not ``fullgraph=True``, like the matcher's compiled L1 cost: matched-pair counts of 0 and 1,
+            # batch size 1, and validation under ``inference_mode`` each add a guard set, and past Dynamo's recompile
+            # limit ``fullgraph=True`` raises ``FailOnRecompileLimitHit`` where the default runs the eager function.
+            self._compiled_batched_detection_losses = torch.compile(_batched_detection_loss_tensors, dynamic=True)
+        return self._compiled_batched_detection_losses
+
+    def get_loss(
+        self,
+        loss: str,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        indices: list[tuple[Tensor, Tensor]],
+        num_boxes: Tensor,
+        matched_targets: _MatchedTargets | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Tensor]:
+        loss_map: dict[str, _LossFunction] = {
+            "labels": self.loss_labels,
+            "cardinality": self.loss_cardinality,
+            "boxes": self.loss_boxes,
+            "masks": self.loss_masks,
+            "keypoints": self.loss_keypoints,
+        }
+        assert loss in loss_map, f"do you really want to compute {loss} loss?"
+        if matched_targets is not None and loss in {"labels", "boxes"}:
+            kwargs["matched_targets"] = matched_targets
+        return loss_map[loss](outputs, targets, indices, num_boxes, **kwargs)
+
+    def forward(
+        self,
+        outputs: dict[str, Any],
+        targets: list[dict[str, Tensor]],
+        num_boxes: Tensor | float | None = None,
+    ) -> dict[str, Tensor]:
+        """Compute every configured loss for one (outputs, targets) pair.
+
+        Each output layer is matched against the targets. Compatible detection layers are batched through the
+        matcher's private fast path; every other matcher and input shape uses the established per-layer calls. Each
+        loss is then evaluated on that layer's matched indices and normalized by ``num_boxes``.
+
+        Args:
+            outputs: Model output dictionary. Must contain the tensors required by
+                every loss in ``self.losses`` (for example ``"pred_logits"``,
+                ``"pred_boxes"``, ``"pred_masks"``, ``"pred_keypoints"``). May also
+                contain ``"aux_outputs"`` (list of layer-wise outputs) and
+                ``"enc_outputs"`` (encoder outputs); both are processed identically
+                to the last layer and contribute prefixed keys to the returned dict.
+            targets: Per-image target dictionaries; ``len(targets) == batch_size``.
+                The expected keys depend on the losses being applied — see each
+                ``loss_*`` method for its target requirements.
+            num_boxes: Optional explicit box-count denominator.
+
+                - ``None`` (default): call :meth:`num_boxes_for_targets` to derive
+                  the distributed-reduced normalizer for the current batch.
+                - ``float`` / ``int``: cast to a tensor on the model output device
+                  and used verbatim. Passing ``1.0`` yields *unnormalized* loss
+                  numerators (used by the manual-optimization path so the caller
+                  can apply its own accumulated denominator).
+                - ``Tensor``: moved to the model output device and used
+                  verbatim. The caller is responsible for any cross-rank reduction;
+                  no extra all-reduce is performed in this branch.
+
+        Returns:
+            Dictionary of named loss tensors. Last-layer losses keep their base
+            names (``"loss_ce"``, ``"loss_bbox"``, ``"loss_giou"``,
+            ``"loss_mask_ce"``, ``"loss_mask_dice"``, ``"loss_keypoints_*"``).
+            Auxiliary-layer losses get a ``"_<i>"`` suffix; encoder-layer losses
+            get an ``"_enc"`` suffix.
+
+        Raises:
+            ValueError: If the targets carry masks and the final layer's outputs do, but an auxiliary layer's or the
+                encoder proposals' outputs do not, as an eval-mode ``LWDETR`` returns them unless called with
+                ``all_layer_masks=True``.
+
+        Examples:
+            >>> import torch
+            >>> from unittest.mock import MagicMock
+            >>> from rfdetr.models.criterion import SetCriterion
+            >>> criterion = SetCriterion.__new__(SetCriterion)
+            >>> criterion.training = False
+            >>> criterion.group_detr = 1
+            >>> criterion.sum_group_losses = False
+            >>> criterion.losses = []
+            >>> criterion.matcher = MagicMock(return_value=[])
+            >>> outputs = {"pred_logits": torch.zeros(1, 1, 1)}
+            >>> targets = [{"labels": torch.tensor([0])}]
+            >>> criterion.forward(outputs, targets, num_boxes=1.0)
+            {}
+        """
+        group_detr = self.group_detr if self.training else 1
+        outputs_without_aux = {k: v for k, v in outputs.items() if k != "aux_outputs"}
+
+        # Caches the compact-path safety gate's target-side sweep once per step instead of once per
+        # matcher() call below, since every call shares the same `targets`. See
+        # :meth:`HungarianMatcher._precompute_target_side_safety` (and its `_TargetSideSafety`
+        # return type) for why this is cached and when reuse vs. a fresh computation is chosen --
+        # the only thing decided here is whether this step makes more than one matcher() call at
+        # all, since a step with no aux_outputs and no enc_outputs makes exactly one, where
+        # precomputing would be pure overhead. `outputs.get("aux_outputs")` is falsy for both an
+        # absent key and a present-but-empty list, so a dec_layers=1 config whose aux_outputs is []
+        # is treated as the single-call step it is. Guarded by getattr so a matcher that predates
+        # this optimization still works: `target_side_safety` is not part of the matcher contract
+        # SetCriterion requires, so the kwarg is withheld entirely from a matcher that does not
+        # advertise the precompute method, rather than passed as None and raising TypeError on its
+        # two-argument signature.
+        precompute = getattr(self.matcher, "_precompute_target_side_safety", None)
+        matcher_kwargs: dict[str, Any] = {"group_detr": group_detr}
+        if precompute is not None and (outputs.get("aux_outputs") or "enc_outputs" in outputs):
+            matcher_kwargs["target_side_safety"] = precompute(outputs_without_aux, targets)
+
+        # Every layer's loss-key suffix is appended in the same statement as the layer itself, so the
+        # final/aux/enc keying cannot drift from the layers it keys when either side gains an entry.
+        # `matched_outputs` stays a plain list of output dicts: it is what the matcher consumes.
+        matched_outputs = [outputs_without_aux]
+        layer_suffixes = [""]
+        if "aux_outputs" in outputs:
+            matched_outputs.extend(outputs["aux_outputs"])
+            layer_suffixes.extend(f"_{aux_index}" for aux_index in range(len(outputs["aux_outputs"])))
+        if "enc_outputs" in outputs:
+            matched_outputs.append(outputs["enc_outputs"])
+            layer_suffixes.append("_enc")
+
+        # Mask targets make the matcher read every layer's pred_masks. An eval-mode segmentation LWDETR leaves them out
+        # of the auxiliary layers and encoder proposals unless it was called with all_layer_masks=True.
+        masks_needed = bool(targets) and "masks" in targets[0] and "pred_masks" in outputs_without_aux
+        if masks_needed and any("pred_masks" not in layer for layer in matched_outputs):
+            raise ValueError(
+                "The auxiliary-layer or encoder-proposal outputs carry no pred_masks, which mask targets need. An "
+                "eval-mode LWDETR computes them only when called with all_layer_masks=True."
+            )
+
+        # The batched fast path calls `_match_many` unbound off the matcher's class, so it skips
+        # `nn.Module.__call__` entirely. Anything that legitimately hangs off that call path must
+        # therefore veto it: a subclass overriding `forward` -- the sanctioned nn.Module extension
+        # point -- would otherwise have the base matching logic silently answer in its place, and
+        # registered forward hooks would never fire. Both cases decline to the per-layer fallback
+        # below, which still routes through `nn.Module.__call__`. The `forward` lookup stays on the
+        # class (never the instance) and tolerates its absence, so a duck-typed non-Module matcher
+        # keeps declining the fast path exactly as it does for a missing `_match_many`.
+        matcher_type = type(self.matcher)
+        fast_path_safe = (
+            getattr(matcher_type, "forward", None) is HungarianMatcher.forward
+            and not self.matcher._forward_pre_hooks
+            and not self.matcher._forward_hooks
+        )
+        match_many = getattr(matcher_type, "_match_many", None) if fast_path_safe else None
+        all_indices = (
+            None if match_many is None else match_many(self.matcher, matched_outputs, targets, **matcher_kwargs)
+        )
+        if all_indices is None:
+            all_indices = [self.matcher(layer_outputs, targets, **matcher_kwargs) for layer_outputs in matched_outputs]
+
+        # MARN_C2_V1: observe existing assignments without changing matcher/loss paths.
+        observer = getattr(self, "marn_observer", None)
+        if self.training and observer is not None:
+            observer(matched_outputs, all_indices, layer_suffixes, targets)
+
+        if num_boxes is None:
+            num_boxes = self.num_boxes_for_targets(outputs, targets)
+        elif not torch.is_tensor(num_boxes):
+            num_boxes = torch.as_tensor(num_boxes, dtype=torch.float, device=self._output_device(outputs))
+        else:
+            num_boxes = num_boxes.to(device=self._output_device(outputs), dtype=torch.float)
+
+        # Labels and boxes are both requested by every detection configuration, so build their
+        # shared matched tensors once per output layer before either loss consumes them.
+        has_detection_targets = {"labels", "boxes"} <= set(self.losses)
+        matched_targets_by_layer = (
+            [self._get_matched_targets(targets, indices) for indices in all_indices] if has_detection_targets else []
+        )
+        if self._can_batch_detection_losses(matched_outputs, matched_targets_by_layer):
+            batched_losses = self._get_batched_detection_losses(
+                matched_outputs, targets, all_indices, matched_targets_by_layer, num_boxes
+            )
+            losses = {}
+            for suffix, layer_losses in zip(layer_suffixes, batched_losses, strict=True):
+                losses.update({key + suffix: value for key, value in layer_losses.items()})
+            return losses
+
+        losses = {}
+        for layer_index, (suffix, layer_outputs, indices) in enumerate(
+            zip(layer_suffixes, matched_outputs, all_indices, strict=True)
+        ):
+            matched_targets = matched_targets_by_layer[layer_index] if has_detection_targets else None
+            for loss in self.losses:
+                # Only the final layer carries an empty suffix, so a non-empty one marks the
+                # auxiliary and encoder layers whose classification stats are not logged.
+                kwargs: dict[str, Any] = {"log": False} if suffix and loss == "labels" else {}
+                if matched_targets is not None:
+                    kwargs["matched_targets"] = matched_targets
+                layer_losses = self.get_loss(loss, layer_outputs, targets, indices, num_boxes, **kwargs)
+                losses.update({key + suffix: value for key, value in layer_losses.items()})
+
+        return losses

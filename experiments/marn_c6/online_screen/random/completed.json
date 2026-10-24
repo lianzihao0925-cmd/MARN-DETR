@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "kind": "random",
+  "seed": 42,
+  "global_step": 7393,
+  "wall_seconds": 1697.54285794124,
+  "supervision_examples": 598020,
+  "probe_examples": 0,
+  "probe_batches": 0,
+  "probe_seconds": 0.0,
+  "null_verified": false,
+  "key_gradient": true,
+  "out_gradient": true,
+  "router_gradient": false,
+  "native_checkpoint_strict": true,
+  "inference_export_strict": true,
+  "regular": {
+    "AP": 0.5277293920516968,
+    "AP50": 0.7192474007606506,
+    "AP75": 0.5679280757904053,
+    "APs": 0.2478322833776474,
+    "APm": 0.5076963305473328,
+    "APl": 0.7187198400497437,
+    "AR100": 0.7011197805404663
+  },
+  "ema": {
+    "AP": 0.5282166004180908,
+    "AP50": 0.71955406665802,
+    "AP75": 0.5691172480583191,
+    "APs": 0.24632158875465393,
+    "APm": 0.5082922577857971,
+    "APl": 0.7178713083267212,
+    "AR100": 0.701655387878418
+  }
+}

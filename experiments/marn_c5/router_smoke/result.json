@@ -1,0 +1,20 @@
+{
+  "stage": "smoke_complete",
+  "images": 8,
+  "examples": 16,
+  "train_examples": 14,
+  "holdout_examples": 2,
+  "source_split": "COCO train2017 only; split by image",
+  "detector_bank_frozen": true,
+  "probe_precision": "fp32",
+  "context_queries": 29,
+  "exploration_queries_per_image": 2,
+  "backbone_reuse": false,
+  "limitations": "offline frozen-detector pilot; no online route training, no prefix reuse, not complete UAMR or convergence evidence",
+  "label_mean": -6.268545985221863e-05,
+  "label_std": 0.0002678464516066015,
+  "positive_fraction": 0.5625,
+  "max_abs_label": 0.0007169246673583984,
+  "seconds": 17.14011161401868,
+  "passed": true
+}

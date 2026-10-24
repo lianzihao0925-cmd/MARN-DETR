@@ -1,0 +1,141 @@
+{
+  "passed": true,
+  "seed": 42,
+  "smoke": false,
+  "arms": [
+    {
+      "kind": "query_only",
+      "pid": 255821,
+      "started": 1792244208.3385808,
+      "exit_code": 0,
+      "seconds": 1311.1289629936218
+    },
+    {
+      "kind": "random",
+      "pid": 256819,
+      "started": 1792245519.4687843,
+      "exit_code": 0,
+      "seconds": 1725.2941088676453
+    },
+    {
+      "kind": "online",
+      "pid": 257795,
+      "started": 1792247244.7643816,
+      "exit_code": 0,
+      "seconds": 1784.3672485351562
+    }
+  ],
+  "paired_init_data_updates": true,
+  "seconds": 4820.796330213547,
+  "summaries": {
+    "query_only": {
+      "passed": true,
+      "kind": "query_only",
+      "seed": 42,
+      "global_step": 7393,
+      "wall_seconds": 1283.5527765601873,
+      "supervision_examples": 0,
+      "probe_examples": 0,
+      "probe_batches": 0,
+      "probe_seconds": 0.0,
+      "null_verified": false,
+      "key_gradient": true,
+      "out_gradient": true,
+      "router_gradient": false,
+      "native_checkpoint_strict": true,
+      "inference_export_strict": true,
+      "regular": {
+        "AP": 0.5277541875839233,
+        "AP50": 0.7194428443908691,
+        "AP75": 0.5689467191696167,
+        "APs": 0.24355685710906982,
+        "APm": 0.5085595846176147,
+        "APl": 0.7167658805847168,
+        "AR100": 0.7021902203559875
+      },
+      "ema": {
+        "AP": 0.5282642841339111,
+        "AP50": 0.7191551923751831,
+        "AP75": 0.5678125619888306,
+        "APs": 0.2435157597064972,
+        "APm": 0.508804202079773,
+        "APl": 0.7178965210914612,
+        "AR100": 0.7012547850608826
+      }
+    },
+    "random": {
+      "passed": true,
+      "kind": "random",
+      "seed": 42,
+      "global_step": 7393,
+      "wall_seconds": 1697.54285794124,
+      "supervision_examples": 598020,
+      "probe_examples": 0,
+      "probe_batches": 0,
+      "probe_seconds": 0.0,
+      "null_verified": false,
+      "key_gradient": true,
+      "out_gradient": true,
+      "router_gradient": false,
+      "native_checkpoint_strict": true,
+      "inference_export_strict": true,
+      "regular": {
+        "AP": 0.5277293920516968,
+        "AP50": 0.7192474007606506,
+        "AP75": 0.5679280757904053,
+        "APs": 0.2478322833776474,
+        "APm": 0.5076963305473328,
+        "APl": 0.7187198400497437,
+        "AR100": 0.7011197805404663
+      },
+      "ema": {
+        "AP": 0.5282166004180908,
+        "AP50": 0.71955406665802,
+        "AP75": 0.5691172480583191,
+        "APs": 0.24632158875465393,
+        "APm": 0.5082922577857971,
+        "APl": 0.7178713083267212,
+        "AR100": 0.701655387878418
+      }
+    },
+    "online": {
+      "passed": true,
+      "kind": "online",
+      "seed": 42,
+      "global_step": 7393,
+      "wall_seconds": 1756.6303358972073,
+      "supervision_examples": 598177,
+      "probe_examples": 6896,
+      "probe_batches": 431,
+      "probe_seconds": 28.572488762438297,
+      "null_verified": true,
+      "key_gradient": true,
+      "out_gradient": true,
+      "router_gradient": true,
+      "native_checkpoint_strict": true,
+      "inference_export_strict": true,
+      "regular": {
+        "AP": 0.5279546976089478,
+        "AP50": 0.720169186592102,
+        "AP75": 0.5685566067695618,
+        "APs": 0.24569006264209747,
+        "APm": 0.5083516836166382,
+        "APl": 0.7174385190010071,
+        "AR100": 0.7001816630363464
+      },
+      "ema": {
+        "AP": 0.5282830595970154,
+        "AP50": 0.720201849937439,
+        "AP75": 0.5691927075386047,
+        "APs": 0.2462897151708603,
+        "APm": 0.5085772275924683,
+        "APl": 0.7182325124740601,
+        "AR100": 0.7004386782646179
+      },
+      "probe_positive": 3459,
+      "probe_abs_sum": 12.081046361476183,
+      "route_images": 107288,
+      "route_selected_sum": 3119988
+    }
+  }
+}

@@ -1,0 +1,149 @@
+Seed set to 42
+[2026-10-16 15:51:02] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+[2026-10-16 15:51:02] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:51:02] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:51:03] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+[2026-10-16 15:51:05] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:51:05] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:51:06] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/lightning_fabric/loggers/csv_logs.py:268: Experiment logs directory /root/autodl-tmp/project_marn-detr/runs/epoch_check/ exists and is not empty. Previous log files in this directory will be deleted when the new ones are saved!
+[2026-10-16 15:51:08] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1494: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=12.99s)
+creating index...
+index created!
+[2026-10-16 15:51:21] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.37s)
+creating index...
+index created!
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/runs/epoch_check exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/utilities/model_summary/model_summary.py:242: Precision bf16-mixed is not supported by the model summary.  Estimated model size in MB will not be accurate. Using 32 bits instead.
+┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃   ┃ Name        ┃ Type         ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0 │ model       │ LWDETR       │ 32.1 M │ train │     0 │
+│ 1 │ criterion   │ SetCriterion │      0 │ train │     0 │
+│ 2 │ postprocess │ PostProcess  │      0 │ train │     0 │
+└───┴─────────────┴──────────────┴────────┴───────┴───────┘
+Trainable params: 32.1 M                                                        
+Non-trainable params: 0                                                         
+Total params: 32.1 M                                                            
+Total estimated model params size (MB): 128.445                                 
+Modules in train mode: 466                                                      
+Modules in eval mode: 0                                                         
+Total FLOPs: 0                                                                  
+Seed set to 42
+EPOCH_STARTED
+TRAIN_PROGRESS batches=500 images=8000 loss=4.99438
+TRAIN_PROGRESS batches=1000 images=16000 loss=5.64260
+TRAIN_PROGRESS batches=1500 images=24000 loss=5.82096
+TRAIN_PROGRESS batches=2000 images=32000 loss=5.88206
+TRAIN_PROGRESS batches=2500 images=40000 loss=4.84734
+TRAIN_PROGRESS batches=3000 images=48000 loss=4.64565
+TRAIN_PROGRESS batches=3500 images=56000 loss=5.38304
+TRAIN_PROGRESS batches=4000 images=64000 loss=4.98467
+TRAIN_PROGRESS batches=4500 images=72000 loss=5.58749
+TRAIN_PROGRESS batches=5000 images=80000 loss=5.65860
+TRAIN_PROGRESS batches=5500 images=88000 loss=5.47245
+TRAIN_PROGRESS batches=6000 images=96000 loss=4.99986
+TRAIN_PROGRESS batches=6500 images=104000 loss=5.27124
+TRAIN_PROGRESS batches=7000 images=112000 loss=5.92473
+VALIDATION_STARTED
+[2026-10-16 16:09:46] [INFO] rf-detr - Skipping validation-loss computation: compute_val_loss='auto' found no scheduler or callback monitoring 'val/loss', so no 'val/loss' metric is logged this run. Set compute_val_loss=True to log it every validation epoch (for example to read the curve from metrics.csv, TensorBoard, or Weights & Biases).
+              Val [1m([0mEpoch [1;36m1[0m/[1;36m100[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m500[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.4941[0m │ [1;36m0.6837[0m │ [1;36m0.5327[0m │ [1;36m0.6814[0m │ [1;36m0.6603[0m │ [1;36m0.7383[0m │ [1;36m0.6123[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+VALIDATION_FINISHED
+[2026-10-16 16:10:20] [INFO] rf-detr - Best regular checkpoint saved to /root/autodl-tmp/project_marn-detr/runs/epoch_check/checkpoint_best_regular.pth (epoch 0, monitor=val/mAP_50_95, value=0.49407)
+[2026-10-16 16:10:20] [INFO] rf-detr - Best EMA metric improved to 0.5043 (epoch 0)
+[2026-10-16 16:10:22] [INFO] rf-detr - Best total checkpoint saved from EMA (regular=0.4941, ema=0.5043)
+EPOCH_AUDIT: {
+  "validation_seconds": 32.978472620248795,
+  "checkpoint_writes": [
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/runs/epoch_check/last.ckpt",
+      "seconds": 1.2996964156627655
+    }
+  ],
+  "epoch": 0,
+  "global_step": 7393,
+  "training_batches": 7393,
+  "training_images": 118288,
+  "all_observed_losses_finite": true,
+  "end_learning_rates": [
+    0.0001,
+    3.232564185661442e-06,
+    4.040705232076802e-06,
+    4.040705232076802e-06,
+    5.050881540096002e-06,
+    5.050881540096002e-06,
+    6.313601925120002e-06,
+    6.313601925120002e-06,
+    7.892002406400002e-06,
+    7.892002406400002e-06,
+    9.865003008000004e-06,
+    9.865003008000004e-06,
+    1.2331253760000003e-05,
+    1.2331253760000003e-05,
+    1.54140672e-05,
+    1.54140672e-05,
+    1.9267584000000005e-05,
+    1.9267584000000005e-05,
+    2.408448e-05,
+    2.408448e-05,
+    3.01056e-05,
+    3.01056e-05,
+    3.7632e-05,
+    3.7632e-05,
+    4.7040000000000004e-05,
+    4.7040000000000004e-05,
+    7.349999999999998e-05,
+    7e-05
+  ],
+  "epoch_through_train_end_seconds": 1138.5071189701557,
+  "peak_allocated_GiB": 8.77827787399292,
+  "peak_reserved_GiB": 10.1640625,
+  "train_call_wall_seconds": 1157.7151903957129,
+  "last_checkpoint": {
+    "epoch": 0,
+    "global_step": 7393,
+    "optimizer_states": 1,
+    "lr_schedulers": 1,
+    "callback_keys": [
+      "RFDETREMACallback",
+      "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}",
+      "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 10, 'train_time_interval': None}",
+      "BestModelCallback{'monitor': 'val/mAP_50_95', 'mode': 'max', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
+    ],
+    "top_level_keys": [
+      "epoch",
+      "global_step",
+      "pytorch-lightning_version",
+      "state_dict",
+      "loops",
+      "callbacks",
+      "optimizer_states",
+      "lr_schedulers",
+      "args",
+      "model_name",
+      "model_config",
+      "rfdetr_version"
+    ],
+    "size_GiB": 0.47927863989025354
+  }
+}
+EPOCH_CHECK_COMPLETED

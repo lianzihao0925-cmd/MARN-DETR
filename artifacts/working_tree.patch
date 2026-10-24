@@ -1,0 +1,202 @@
+diff --git a/src/rfdetr/datasets/coco.py b/src/rfdetr/datasets/coco.py
+index a0cd1469..610735f3 100644
+--- a/src/rfdetr/datasets/coco.py
++++ b/src/rfdetr/datasets/coco.py
+@@ -811,6 +811,15 @@ class ConvertCoco:
+         target = {}
+         target["boxes"] = boxes
+         target["labels"] = classes
++
++        # MARN_C3A_OBJECT_IDS_V1: opt in before workers start; use the very same keep mask.
++        if getattr(self, "marn_keep_object_ids", False):
++            object_ids = [obj["id"] for obj in anno]
++            if any(type(value) is not int for value in object_ids):
++                raise TypeError("MARN requires integer original COCO annotation IDs")
++            if len(set(object_ids)) != len(object_ids):
++                raise ValueError("Duplicate annotation IDs within one COCO image")
++            target["marn_object_id"] = torch.as_tensor(object_ids, dtype=torch.int64)[keep]
+         target["image_id"] = image_id
+ 
+         # for conversion to coco api
+diff --git a/src/rfdetr/models/criterion.py b/src/rfdetr/models/criterion.py
+index 97672f6c..ebc67909 100644
+--- a/src/rfdetr/models/criterion.py
++++ b/src/rfdetr/models/criterion.py
+@@ -1269,6 +1269,11 @@ class SetCriterion(nn.Module):
+             Auxiliary-layer losses get a ``"_<i>"`` suffix; encoder-layer losses
+             get an ``"_enc"`` suffix.
+ 
++        Raises:
++            ValueError: If the targets carry masks and the final layer's outputs do, but an auxiliary layer's or the
++                encoder proposals' outputs do not, as an eval-mode ``LWDETR`` returns them unless called with
++                ``all_layer_masks=True``.
++
+         Examples:
+             >>> import torch
+             >>> from unittest.mock import MagicMock
+@@ -1317,6 +1322,15 @@ class SetCriterion(nn.Module):
+             matched_outputs.append(outputs["enc_outputs"])
+             layer_suffixes.append("_enc")
+ 
++        # Mask targets make the matcher read every layer's pred_masks. An eval-mode segmentation LWDETR leaves them out
++        # of the auxiliary layers and encoder proposals unless it was called with all_layer_masks=True.
++        masks_needed = bool(targets) and "masks" in targets[0] and "pred_masks" in outputs_without_aux
++        if masks_needed and any("pred_masks" not in layer for layer in matched_outputs):
++            raise ValueError(
++                "The auxiliary-layer or encoder-proposal outputs carry no pred_masks, which mask targets need. An "
++                "eval-mode LWDETR computes them only when called with all_layer_masks=True."
++            )
++
+         # The batched fast path calls `_match_many` unbound off the matcher's class, so it skips
+         # `nn.Module.__call__` entirely. Anything that legitimately hangs off that call path must
+         # therefore veto it: a subclass overriding `forward` -- the sanctioned nn.Module extension
+@@ -1338,6 +1352,11 @@ class SetCriterion(nn.Module):
+         if all_indices is None:
+             all_indices = [self.matcher(layer_outputs, targets, **matcher_kwargs) for layer_outputs in matched_outputs]
+ 
++        # MARN_C2_V1: observe existing assignments without changing matcher/loss paths.
++        observer = getattr(self, "marn_observer", None)
++        if self.training and observer is not None:
++            observer(matched_outputs, all_indices, layer_suffixes, targets)
++
+         if num_boxes is None:
+             num_boxes = self.num_boxes_for_targets(outputs, targets)
+         elif not torch.is_tensor(num_boxes):
+@@ -1374,4 +1393,4 @@ class SetCriterion(nn.Module):
+                 layer_losses = self.get_loss(loss, layer_outputs, targets, indices, num_boxes, **kwargs)
+                 losses.update({key + suffix: value for key, value in layer_losses.items()})
+ 
+-        return losses
++        return losses
+\ No newline at end of file
+diff --git a/src/rfdetr/models/lwdetr.py b/src/rfdetr/models/lwdetr.py
+index 492dee03..6e7a2dd9 100644
+--- a/src/rfdetr/models/lwdetr.py
++++ b/src/rfdetr/models/lwdetr.py
+@@ -458,7 +458,13 @@ class LWDETR(nn.Module):
+             class_boost = class_boost[..., :detection_num_classes]
+         return class_boost
+ 
+-    def forward(self, samples: NestedTensor, targets: list[dict[str, Tensor]] | None = None) -> dict[str, Any]:
++    def forward(
++        self,
++        samples: NestedTensor,
++        targets: list[dict[str, Tensor]] | None = None,
++        *,
++        all_layer_masks: bool = False,
++    ) -> dict[str, Any]:
+         """The forward expects a NestedTensor, which consists of:
+ 
+            - samples.tensor: batched images, of shape [batch_size x 3 x H x W]
+@@ -473,6 +479,20 @@ class LWDETR(nn.Module):
+                            information on how to retrieve the unnormalized bounding box.
+            - "aux_outputs": Optional, only returned when auxiliary losses are activated. It is a list of
+                             dictionaries containing the two above keys for each decoder layer.
++
++        Segmentation models also return "pred_masks". In training mode the auxiliary layers and "enc_outputs" carry
++        "pred_masks" too, for the loss; in eval mode they do so only when ``all_layer_masks`` is set, because
++        nothing but the criterion reads them and each is a dense ``(B, Q)`` mask map at the segmentation head's
++        resolution, a quarter of the input size by default.
++
++        Args:
++            samples: Batched images, a ``NestedTensor`` or a list or tensor of images.
++            targets: Unused; kept for call compatibility.
++            all_layer_masks: In eval mode, also compute the segmentation masks of the auxiliary decoder layers and
++                of the encoder proposals, as a loss on eval-mode outputs needs. Training mode always computes them.
++
++        Returns:
++            The prediction dict described above.
+         """
+         if isinstance(samples, (list, Tensor)):
+             samples = nested_tensor_from_tensor_list(samples)
+@@ -496,6 +516,8 @@ class LWDETR(nn.Module):
+ 
+         if self.segmentation_head is not None:
+             seg_head_fwd = self.segmentation_head.sparse_forward if self.training else self.segmentation_head.forward
++        # Only SetCriterion reads the auxiliary-layer and encoder-proposal masks.
++        aux_masks = self.training or all_layer_masks
+ 
+         cross_attn_srcs = None
+         if cross_attn_features is not None:
+@@ -504,6 +526,10 @@ class LWDETR(nn.Module):
+                 cross_src, _ = feature.decompose()
+                 cross_attn_srcs.append(cross_src)
+ 
++        # MARN_C2_V1: transient head references, supplied by this model instance.
++        if getattr(self.transformer.decoder, "marn", None) is not None:
++            self.transformer.decoder.__dict__["_marn_heads"] = (self.class_embed, self.bbox_embed)
++
+         transformer_outputs = self.transformer(
+             srcs,
+             masks,
+@@ -567,7 +593,13 @@ class LWDETR(nn.Module):
+                 outputs_class = outputs_class + self._aggregate_keypoint_class_logits(outputs_keypoints)
+ 
+             if self.segmentation_head is not None:
+-                outputs_masks = seg_head_fwd(features[0].tensors, hs, cast(tuple[int, int], samples.tensors.shape[-2:]))
++                image_size = cast(tuple[int, int], samples.tensors.shape[-2:])
++                if aux_masks:
++                    outputs_masks = seg_head_fwd(features[0].tensors, hs, image_size)
++                else:
++                    outputs_masks = self.segmentation_head.forward(
++                        features[0].tensors, hs, image_size, final_layer_only=True
++                    )
+ 
+             out = {"pred_logits": outputs_class[-1], "pred_boxes": outputs_coord[-1]}
+             if self.segmentation_head is not None:
+@@ -578,7 +610,7 @@ class LWDETR(nn.Module):
+                 out["aux_outputs"] = self._set_aux_loss(
+                     outputs_class,
+                     outputs_coord,
+-                    outputs_masks if self.segmentation_head is not None else None,
++                    outputs_masks if self.segmentation_head is not None and aux_masks else None,
+                     outputs_keypoints,
+                 )
+ 
+@@ -607,7 +639,8 @@ class LWDETR(nn.Module):
+                 )
+                 cls_enc = cls_enc + self._aggregate_keypoint_class_logits(keypoints_enc)
+ 
+-            if self.segmentation_head is not None:
++            # Without decoder layers the encoder proposals are the predictions, so their masks are always needed.
++            if self.segmentation_head is not None and (aux_masks or hs is None):
+                 masks_enc = seg_head_fwd(
+                     features[0].tensors,
+                     [
+@@ -619,7 +652,7 @@ class LWDETR(nn.Module):
+ 
+             if hs is not None:
+                 out["enc_outputs"] = {"pred_logits": cls_enc, "pred_boxes": ref_enc}
+-                if self.segmentation_head is not None:
++                if self.segmentation_head is not None and aux_masks:
+                     out["enc_outputs"]["pred_masks"] = masks_enc
+                 if keypoints_enc is not None:
+                     out["enc_outputs"]["pred_keypoints"] = keypoints_enc
+@@ -1031,4 +1064,4 @@ def build_criterion_from_config(
+     from rfdetr._namespace import _namespace_from_configs
+ 
+     ns = _namespace_from_configs(model_config, train_config, defaults)
+-    return build_criterion_and_postprocessors(ns)
++    return build_criterion_and_postprocessors(ns)
+\ No newline at end of file
+diff --git a/src/rfdetr/models/transformer.py b/src/rfdetr/models/transformer.py
+index bdf6dfdb..7a2cf1b8 100644
+--- a/src/rfdetr/models/transformer.py
++++ b/src/rfdetr/models/transformer.py
+@@ -1474,6 +1474,16 @@ class TransformerDecoder(nn.Module):
+                 assert self.norm is not None
+                 intermediate.append(self.norm(output))
+ 
++            # MARN_C2_V1: after native ref update + auxiliary capture; before the next layer.
++            marn = getattr(self, "marn", None)
++            if marn is not None and marn.enabled and layer_id == marn.config.layer:
++                if not self.return_intermediate or self._export or self.enable_keypoint_processing:
++                    raise RuntimeError("MARN C2 requires eager detection with intermediate outputs")
++                output = marn(
++                    output, intermediate[-1], hs_refpoints_unsigmoid[layer_id],
++                    self.__dict__["_marn_heads"], self.bbox_reparam,
++                )
++
+         if self.norm is not None:
+             output = self.norm(output)
+             if self.return_intermediate:

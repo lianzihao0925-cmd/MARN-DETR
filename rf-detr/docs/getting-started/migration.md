@@ -1,0 +1,721 @@
+---
+description: Per-version migration guide for RF-DETR. Covers breaking changes and deprecated APIs for each release series.
+---
+
+# Migration Guide
+
+Read each section between your current version and your target — every section covers only the delta between two adjacent releases.
+
+```
+1.4.x  →  1.5 →  1.6  →  1.7  →  1.8  →  1.9  →  1.10  →  1.11
+```
+
+You can apply all changes in one go; working through sections one release at a time and verifying between each step is optional but makes failures easier to isolate. Deprecated APIs emit a `DeprecationWarning`, while deprecated configuration fields emit a `FutureWarning`, until the version marked for removal. See the [Changelog](../changelog.md) for the full list of changes in each release.
+
+---
+
+## Upgrade 1.10 → 1.11
+
+### Breaking changes
+
+!!! warning "Breaking: the export internals are now exporter classes"
+
+    Each export format is written by a `<Format>Exporter` class built from that format's configuration, and `RFDETR.export()` is a facade over them. Its own signature and return value are unchanged — only the internal modules moved. Public exports are unaffected; this matters only if you imported the converter functions directly.
+
+    | Removed                                                                        | Replacement                                                                               |
+    | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+    | `rfdetr.export.main` (whole module, including `main()` and `make_infer_image`) | `rfdetr.export.prepare.make_infer_image`; the `main()` CLI had no entry point and is gone |
+    | `rfdetr.export.protocols.ExporterProtocol`                                     | `rfdetr.export.base.Exporter`                                                             |
+    | `rfdetr.export._onnx.exporter.export_onnx`                                     | `rfdetr.export._onnx.exporter.OnnxExporter`                                               |
+    | `rfdetr.export._openvino.exporter.export_openvino`                             | `rfdetr.export._openvino.exporter.OpenVINOExporter`                                       |
+    | `rfdetr.export._coreml.converter.export_coreml`                                | `rfdetr.export._coreml.exporter.CoreMLExporter`                                           |
+    | `rfdetr.export._executorch.converter.export_executorch`                        | `rfdetr.export._executorch.exporter.ExecuTorchExporter`                                   |
+    | `rfdetr.export._tflite.converter.export_tflite`                                | `rfdetr.export._tflite.exporter.TFLiteExporter`                                           |
+    | `rfdetr.export._tensorrt.build_engine`                                         | `rfdetr.export._tensorrt.exporter.TensorRTExporter`                                       |
+    | `rfdetr.export.benchmark.TRTInference`                                         | `rfdetr.export._tensorrt.inference.TRTInference`                                          |
+
+    Every path with a leading underscore was already internal and carried no stability guarantee; they are listed so the move is discoverable rather than a silent break. Prefer `RFDETR.export(format=...)`. The contract each exporter implements is documented in the [Exporter Blueprint](../exports/blueprint.md).
+
+!!! warning "Breaking: `format=\"tensorrt\"` with `backbone_only=True` and `output_name` now marks the engine"
+
+    The engine is named `{output_name}-backbone.trt` instead of `{output_name}.trt`, matching what `RFDETR.export()`'s documentation already described and what every other format does. Without the marker a backbone engine silently overwrites a full-detector engine exported under the same name. Scripts that rebuilt the path from `output_name` need the suffix added.
+
+!!! warning "Breaking: the WebDataset streaming extra is now `data`, not `webdataset`"
+
+    `pip install rfdetr[webdataset]` never shipped — the extra bundling `webdataset` (for `dataset_file="webdataset"` streaming training input) is named `data`.
+
+    ```bash
+    # Before (never worked)
+    pip install rfdetr[webdataset]
+
+    # After
+    pip install rfdetr[data]
+    ```
+
+!!! warning "Breaking: `TrainConfig.multi_scale` is now a three-state enum, `do_random_resize_via_padding` is gone"
+
+    `multi_scale` accepts `MultiScale.OFF` / `PER_BATCH` / `PER_SAMPLE` (or the equivalent strings `"off"` / `"per-batch"` / `"per-sample"`) instead of a plain `bool`; the default is `PER_BATCH`. Booleans still work as input — `True` normalizes to `PER_BATCH` (the old default's behavior), `False` to `OFF` — so an existing `multi_scale=True`/`False` config keeps its behavior unchanged. `do_random_resize_via_padding` is removed: its `True` setting is now `multi_scale="per-sample"`.
+
+    ```python
+    # Before
+    TrainConfig(multi_scale=True, do_random_resize_via_padding=True)
+
+    # After
+    TrainConfig(multi_scale="per-sample")
+    ```
+
+    A `training_config.json` written by v1.10 or earlier carries `do_random_resize_via_padding` explicitly; `TrainConfig` rejects unknown fields, so drop it before reloading (same pattern as the `lr_drop`/`lr_min_factor` removal below).
+
+### Deprecated
+
+!!! info "Deprecated: `ModelConfig.amp`, removal in v1.14"
+
+    `TrainConfig.amp_dtype` is now the sole authority for enabling and choosing mixed precision; it accepts `None` to disable autocast entirely, which `ModelConfig.amp=False` used to do alone. An explicit (non-default) `amp_dtype` always wins over the deprecated `amp` flag; `amp` is only consulted when `amp_dtype` is left at its default `"auto"` and `amp=False`.
+
+    ```python
+    # Before (still works, now deprecated)
+    ModelConfig(amp=False)
+
+    # After
+    TrainConfig(amp_dtype=None)
+    ```
+
+!!! info "Deprecated: `TrainConfig.fp16_eval`, removal in v1.14"
+
+    Has had no runtime consumer since the PyTorch Lightning migration — evaluation precision now follows `amp_dtype`. Setting it emits a `FutureWarning`; drop it from configs.
+
+### Removed
+
+!!! warning "Removed: `rfdetr.datasets.synthetic`"
+
+    The synthetic shape-dataset generator has been removed. It existed to build RF-DETR's own test fixtures, and that job now belongs to the [`fuse-augmentations`](https://github.com/Borda/fuse-augmentations) package, whose `fuse_augmentations.data` module generates the same datasets in COCO or YOLO layout for detection, segmentation, and OBB tasks.
+
+    Removed names: `generate_coco_dataset`, `generate_synthetic_sample`, `draw_synthetic_shape`, `calculate_boundary_overlap`, `DatasetSplitRatios`, `DEFAULT_SPLIT_RATIOS`, `SYNTHETIC_SHAPES`, `SYNTHETIC_COLORS`.
+
+    ```bash
+    pip install fuse-augmentations
+    ```
+
+    ```python
+    # Before
+    from rfdetr.datasets.synthetic import DatasetSplitRatios, generate_coco_dataset
+
+    generate_coco_dataset(
+        output_dir="dataset",
+        num_images=100,
+        img_size=224,
+        class_mode="shape",
+        min_objects=3,
+        max_objects=7,
+        split_ratios=DatasetSplitRatios(train=0.8, val=0.2, test=0.0),
+        with_segmentation=True,
+    )
+
+    # After
+    from fuse_augmentations.data import SplitRatios, generate_dataset
+
+    generate_dataset(
+        output_dir="dataset",
+        num_images=100,
+        fmt="coco",
+        task="segmentation",  # "detection" for boxes only
+        class_mode="shape",
+        split_ratios=SplitRatios(train=0.8, val=0.2, test=0.0),
+        seed=42,
+        img_size=224,
+        min_objects=3,
+        max_objects=7,
+    )
+    ```
+
+    Two differences to plan for: the replacement writes **dense** COCO category ids (`1, 2, 3, …`) where the removed generator wrote sparse ones (`1, 3, 5, …`), and its shape set adds `rectangle`, so a fixed class count of 3 becomes 4. Derive the class count from the annotation file rather than hard-coding it. Generation also draws from fresh entropy unless you pass `seed`.
+
+!!! warning "Removed: `RFDETR.optimize_for_inference()`"
+
+    The alias deprecated in v1.9.0 is gone. Call `RFDETR.inference()`; the signature is unchanged.
+
+    ```python
+    # Before (removed)
+    model.optimize_for_inference(dtype=torch.float16)
+
+    # After
+    model.inference(dtype=torch.float16)
+    ```
+
+!!! warning "Removed: `TrainConfig.lr_drop` and `TrainConfig.lr_min_factor`"
+
+    Both fields, deprecated in v1.9.0, are gone together with the shim that folded them into `lr_scheduler_kwargs`. Pass the values through `lr_scheduler_kwargs`; the managed `"step"` / `"cosine"` presets fall back to `lr_drop=100` and `min_factor=0.0` when a key is absent, the same defaults the removed fields carried.
+
+    ```python
+    # Before (removed)
+    TrainConfig(lr_scheduler="step", lr_drop=80, lr_min_factor=0.1)
+
+    # After
+    TrainConfig(lr_scheduler="step", lr_scheduler_kwargs={"lr_drop": 80, "min_factor": 0.1})
+    ```
+
+    `TrainConfig` rejects unknown fields, so a `training_config.json` written by v1.9 or v1.10 no longer loads as-is — its `train_config` section carries both keys explicitly. Drop them before reloading:
+
+    ```python
+    import json
+
+    with open("training_config.json") as f:
+        saved = json.load(f)
+    saved["train_config"].pop("lr_drop", None)
+    saved["train_config"].pop("lr_min_factor", None)
+    train_config = TrainConfig(**saved["train_config"])
+    ```
+
+    `training_config.json`'s top level is `{"train_config": ..., "model_config": ..., "model_config_type": ..., "class_names": ..., "num_classes": ...}` (see `rfdetr.detr._save_training_config`); `TrainConfig`'s own fields live under the `train_config` key, not at the top level. A config saved by v1.9+ already carries the migrated values in `lr_scheduler_kwargs`, so nothing is lost by dropping the two keys.
+
+---
+
+## Upgrade 1.9 → 1.10
+
+### Breaking changes
+
+!!! warning "Breaking: `log_per_class_metrics` now defaults to `False`"
+
+    `TrainConfig.log_per_class_metrics` defaults to `False` (was `True`). Per-class AP keys (`test/AP/<class>`, `val/AP/<class>`) are no longer emitted by default — validation/test now skip that per-class computation. Set it explicitly to restore the old behavior:
+
+    ```python
+    train_config = TrainConfig(log_per_class_metrics=True)
+    ```
+
+!!! warning "Breaking: `compute_val_loss` now defaults to `\"auto\"`"
+
+    `TrainConfig.compute_val_loss` defaults to `"auto"` (was `True`). In `"auto"` mode, validation loss is computed only when something actually consumes it — a `ReduceLROnPlateau` scheduler monitoring `val/loss`, or a callback (e.g. `ModelCheckpoint(monitor="val/loss")`, early stopping) that requires it — and is skipped otherwise. For a default run with no such consumer, `val/loss` no longer appears in `metrics.csv`, TensorBoard, or W&B. Set it explicitly to restore the old unconditional behavior:
+
+    ```python
+    train_config = TrainConfig(compute_val_loss=True)
+    ```
+
+!!! warning "Breaking: validation evaluates one model, and `val/mAP_*` follows it"
+
+    Validation now runs **one** forward pass per batch instead of two: through the EMA weights when `use_ema=True` (the default), through the base weights otherwise. `val/mAP_50_95`, `val/mAP_50`, `val/mAP_75`, `val/mAR`, and per-class `val/AP/<class>` therefore report the EMA model on a default run — they used to report the base model — while the matching `val/ema_*` namespace remains available. Best-checkpoint selection is unaffected in substance (it already preferred EMA), but the "regular" track no longer writes `checkpoint_best_regular.pth` on such runs; `checkpoint_best_total.pth` is copied from the EMA checkpoint.
+
+    `val/F1` and `val/loss` (when computed) follow the same single forward, so they now describe the EMA model too — consistent with the mAP under the primary key, but a change of meaning if you monitor `val/loss` with a `ReduceLROnPlateau` scheduler, `ModelCheckpoint`, or early stopping.
+
+    Restore the previous two-forward behavior, both metric namespaces and both checkpoint tracks:
+
+    ```python
+    train_config = TrainConfig(eval_base_model=True)
+    ```
+
+!!! warning "Breaking: `grad_accum_steps` now defaults to `1`"
+
+    `TrainConfig.grad_accum_steps` defaults to `1` (was `4`), which changes the default effective batch size from 16 to 4 at the default `batch_size=4`. This is a training-semantics change, not just a throughput change — the optimization trajectory (and possibly convergence/final mAP) can differ from a run using the old default. `batch_size="auto"` runs are unaffected, since the auto-batch probe overwrites `grad_accum_steps` with its own recommendation. Restore the previous default:
+
+    ```python
+    train_config = TrainConfig(grad_accum_steps=4)
+    ```
+
+!!! warning "Breaking: optimizer parameter groups are now merged by hyperparameter"
+
+    `get_param_dict` now builds one parameter group per distinct learning-rate/weight-decay combination instead of one group per parameter (`rfdetr-nano` goes from 465 groups to 28). Layer-wise LR decay and per-parameter weight decay are preserved, and the resulting AdamW steps are bit-identical; checkpoints saved with the old per-parameter layout resume automatically. If you pass an explicit `lr_scheduler` whose `lr_scheduler_kwargs` include a list sized to a specific parameter-group count (e.g. `LambdaLR`'s per-group `lr_lambda`), resize that list to match the new (smaller) group count.
+
+!!! warning "Breaking: dataset builders require a complete pipeline-option namespace"
+
+    `build_roboflow_from_coco`, `build_roboflow_from_yolo`, and `build_o365_raw` now raise instead of silently substituting a default when the config namespace passed to them is missing `square_resize_div_64`, `segmentation_head`, `multi_scale`, `expanded_scales`, `do_random_resize_via_padding`, `patch_size`, or `num_windows` (`build_o365_raw` doesn't take `segmentation_head` — detection-only). Calling these with a complete `TrainConfig`/`ModelConfig` (the normal `.train()`/`RFDETRDataModule` path) is unaffected — this only affects callers who assemble a partial config namespace by hand and pass it to these builders directly. Supply every field on that namespace to fix it:
+
+    ```python
+    # Before — missing fields silently fell back to (sometimes wrong) defaults
+    build_roboflow_from_coco(args=partial_namespace)
+
+    # After — supply every pipeline option the builder needs, matching your
+    # model variant's ModelConfig (patch_size varies by variant — 12, 14, or
+    # 16 — read it from your ModelConfig rather than hardcoding it)
+    partial_namespace.square_resize_div_64 = True
+    partial_namespace.segmentation_head = False
+    partial_namespace.multi_scale = True
+    partial_namespace.expanded_scales = True
+    partial_namespace.do_random_resize_via_padding = False
+    partial_namespace.patch_size = model_config.patch_size
+    partial_namespace.num_windows = model_config.num_windows
+    build_roboflow_from_coco(args=partial_namespace)
+    ```
+
+### Deprecated in v1.10 → Remove in v1.13
+
+!!! note "`eval_ema_only` is deprecated"
+
+    Evaluating only the selected model is the default. Explicit legacy `TrainConfig(eval_ema_only=True)` preserves EMA-only evaluation and emits a `FutureWarning`; explicit `eval_ema_only=False` is migrated to the old base-plus-EMA behavior and also warns. Drop the field from new configurations. Use `eval_base_model=True` if you want the base model evaluated as well; `eval_ema_only=True` still requires `use_ema=True` and conflicts with that opt-in.
+
+    One improvement for existing `eval_ema_only` users: `val/mAP_50_95` is now populated (with the EMA score) instead of staying absent, so monitors pointed at it start receiving values again.
+
+---
+
+## Upgrade 1.8 → 1.9
+
+### Breaking changes
+
+!!! warning "Breaking: `albumentations` and `kornia` extras merged into `augment`"
+
+    **PyPI extras renamed.** Default training/validation/prediction/export augmentations now use torchvision-native transforms, so `[train]` no longer installs Albumentations. Custom CPU (Albumentations) and GPU (Kornia) augmentation both live behind a single new `augment` extra.
+
+    | Old extra                                | New extra               |
+    | ---------------------------------------- | ----------------------- |
+    | `rfdetr[train]` (implied albumentations) | `rfdetr[train,augment]` |
+    | `rfdetr[kornia]`                         | `rfdetr[augment]`       |
+
+    ```bash
+    # Before
+    pip install 'rfdetr[train]'    # bundled albumentations
+    pip install 'rfdetr[kornia]'
+
+    # After
+    pip install 'rfdetr[train,augment]'   # custom aug_config or GPU backend
+    pip install 'rfdetr[augment]'
+    ```
+
+!!! note "`augmentation_backend` values renamed"
+
+    `augmentation_backend="tv"` and `"albu"` are renamed to `"torchvision"` and `"albumentations"`. The old strings (and `"gpu"`) still work as aliases, so no code changes are required — see [Augmentation Backend Values](../learn/train/augmentations.md#augmentation-backend-values) for the full accepted set.
+
+!!! warning "Breaking: default resize interpolation changed — pixel values and mAP may shift"
+
+    The default resize backend changed from Albumentations (cv2 `INTER_LINEAR`, no antialias) to torchvision (`BILINEAR` + `antialias=True`). Resized pixel values differ slightly from previous versions, and mAP may drift on existing benchmarks. **This affects the training split only** — `_route_transforms` (`rfdetr.datasets.coco`) routes to Albumentations only when `image_set == "train"`; validation, test, prediction and export always resize through torchvision, unaffected by `aug_config` or `augmentation_backend`.
+
+    To restore the previous pixel-exact behaviour for training:
+
+    ```bash
+    pip install 'rfdetr[augment]'
+    ```
+
+    ```python
+    from rfdetr.datasets.aug_configs import AUG_CONFIG
+
+    train_config = TrainConfig(aug_config=AUG_CONFIG)
+    ```
+
+    Installing `rfdetr[augment]` alone is **not** sufficient to pin this behaviour — with Albumentations installed, `augmentation_backend="auto"`/`"cpu"` (the default) auto-selects Albumentations for you, but identical code on a machine without `[augment]` installed silently falls back to torchvision instead. The only setting that pins the *training* resize backend regardless of what is installed is:
+
+    ```python
+    train_config = TrainConfig(augmentation_backend="torchvision")
+    ```
+
+    No setting restores Albumentations for validation/test/predict/export — that path is torchvision-only by design, not a configurable default.
+
+### Removed
+
+The following APIs were deprecated in earlier releases and are removed as of v1.9. Update your code before upgrading.
+
+!!! warning "Removed: `rfdetr.util.*` and `rfdetr.deploy.*` import paths"
+
+    Deprecated since v1.6, removed in v1.9. Use the canonical replacements listed in the [Upgrade 1.5 → 1.6](#upgrade-15--16) section.
+
+    ```python
+    # These imports now raise ImportError; update to the canonical paths
+    from rfdetr.util.coco_classes import COCO_CLASSES  # → rfdetr.assets.coco_classes
+    from rfdetr.util.misc import get_rank  # → rfdetr.utilities
+    from rfdetr.deploy import export_onnx  # → RFDETR.export(format="onnx")
+    ```
+
+!!! warning "Removed: `build_namespace(model_config, train_config)`"
+
+    Deprecated since v1.7, removed in v1.9. Use `build_model_from_config` and `build_criterion_from_config` instead.
+
+!!! warning "Removed: `load_pretrain_weights(nn_model, model_config, train_config)` with `train_config`"
+
+    Deprecated since v1.7, removed in v1.9. Drop the `train_config` positional argument.
+
+!!! warning "Removed: `start_epoch` kwarg in `train()`"
+
+    Deprecated since v1.7, removed in v1.9. PyTorch Lightning resumes automatically via `resume=`.
+
+!!! warning "Removed: `do_benchmark` kwarg in `train()`"
+
+    Deprecated since v1.7, removed in v1.9. Use the `rfdetr.export.benchmark` module instead.
+
+!!! warning "Removed: `callbacks` dict kwarg in `train()`"
+
+    Deprecated since v1.7, removed in v1.9. Pass PTL `Callback` objects directly via the Lightning API instead.
+
+!!! warning "Removed: misplaced config fields"
+
+    The following `TrainConfig` and `ModelConfig` fields moved to their correct config class in v1.7; the deprecated compatibility shims are removed in v1.9. Passing one of these fields on its old config class now raises a pydantic validation error:
+
+    | Field               | Removed from  | Use in        |
+    | ------------------- | ------------- | ------------- |
+    | `group_detr`        | `TrainConfig` | `ModelConfig` |
+    | `ia_bce_loss`       | `TrainConfig` | `ModelConfig` |
+    | `segmentation_head` | `TrainConfig` | `ModelConfig` |
+    | `num_select`        | `TrainConfig` | `ModelConfig` |
+    | `cls_loss_coef`     | `ModelConfig` | `TrainConfig` |
+
+!!! warning "Removed: `RFDETRLarge` silent fallback to deprecated Large config"
+
+    `RFDETRLarge()` no longer catches checkpoint/config incompatibility errors and silently retries with `RFDETRLargeDeprecatedConfig`. Loading legacy deprecated-Large weights through `RFDETRLarge` now raises the original `ValueError`/`RuntimeError` instead of falling back. `RFDETRLargeDeprecated` itself is unaffected — use it directly to load those checkpoints.
+
+    ```python
+    # Before (silently retried with the deprecated config and logged a warning)
+    model = RFDETRLarge(pretrain_weights="old_large_checkpoint.pth")
+
+    # After
+    from rfdetr import RFDETRLargeDeprecated
+
+    model = RFDETRLargeDeprecated(pretrain_weights="old_large_checkpoint.pth")
+    ```
+
+### Deprecated in v1.9 → Removed in v1.11
+
+!!! note "Deprecated: `RFDETR.optimize_for_inference()` renamed to `RFDETR.inference()`"
+
+    **`optimize_for_inference(compile=..., batch_size=..., dtype=..., inplace=..., compile_backend=...)`** — renamed to `inference()` with the same signature.
+
+    ```python
+    # Before (deprecated)
+    model.optimize_for_inference(dtype=torch.float16)
+
+    # After
+    model.inference(dtype=torch.float16)
+    ```
+
+!!! note "Deprecated: `TrainConfig.lr_drop` and `TrainConfig.lr_min_factor`"
+
+    **`lr_drop` / `lr_min_factor`** — pass them through `lr_scheduler_kwargs` instead. For the managed `"step"` / `"cosine"` presets the fields are still folded into `lr_scheduler_kwargs` (with a `FutureWarning`); set with an explicit scheduler they are inert and warn.
+
+    ```python
+    # Before (deprecated)
+    TrainConfig(lr_scheduler="step", lr_drop=80, lr_min_factor=0.1)
+
+    # After
+    TrainConfig(lr_scheduler="step", lr_scheduler_kwargs={"lr_drop": 80, "min_factor": 0.1})
+    ```
+
+### Deprecated in v1.9 → Remove in v1.12
+
+!!! note "`rfdetr.datasets.aug_config` is deprecated"
+
+    The module was renamed to `rfdetr.datasets.aug_configs` (plural) in v1.8.0 — see the "Upgrade 1.7 → 1.8" section below, where it is listed as a breaking change because that rename shipped with no compatibility shim. A shim was added in v1.9.0, so the singular path imports again and emits a `FutureWarning`. It is scheduled for removal in **v1.12.0**; migrate before then.
+
+    The preset constants are unchanged — only the module path moves.
+
+    ```python
+    # Before (deprecated, warns since v1.9.0)
+    from rfdetr.datasets.aug_config import AUG_AGGRESSIVE
+
+    # After
+    from rfdetr.datasets.aug_configs import AUG_AGGRESSIVE
+    ```
+
+---
+
+## Upgrade 1.7 → 1.8
+
+### Breaking changes
+
+!!! note "Breaking in v1.8.2: default keypoint schema changed to active-first `[17]`"
+
+    New checkpoints created from v1.8.2 onwards use `class_id=0` for person. Legacy `[0, 17]` checkpoints are still supported — RF-DETR auto-detects the schema from the checkpoint at load time.
+
+    If your post-processing code offsets class IDs by 1 (common for background-first models), update it:
+
+    ```python
+    # Before (background-first [0, 17]: person was at class_id=1)
+    class_name = "person" if detection.class_id == 1 else "other"
+
+    # After (active-first [17]: person is at class_id=0)
+    class_name = "person" if detection.class_id == 0 else "other"
+    ```
+
+    Use `detection.data["class_name"]` for schema-agnostic name resolution.
+
+!!! warning "Breaking: `rfdetr.datasets.aug_config` renamed to `rfdetr.datasets.aug_configs`"
+
+    The augmentation config module was renamed (singular → plural). If you import from it directly:
+
+    ```python
+    # Before
+    from rfdetr.datasets.aug_config import AUG_AGGRESSIVE
+
+    # After
+    from rfdetr.datasets.aug_configs import AUG_AGGRESSIVE
+    ```
+
+    All preset constants (`AUG_AGGRESSIVE`, `AUG_CONSERVATIVE`, etc.) are unchanged.
+
+!!! warning "Breaking: `supervision>=0.29.0` now required"
+
+    Required for `sv.KeyPoints` support. `pip install rfdetr==1.8.0` pulls this automatically. If another dependency pins `supervision<0.29.0`, resolve the conflict manually.
+
+!!! warning "Breaking: `pyDeprecate` constraint narrowed to `>=0.9,<0.10`"
+
+    Was `>=0.6,<0.8`. If another package pins an older version, resolve with:
+
+    ```bash
+    pip install "rfdetr==1.8.0" "pyDeprecate>=0.9,<0.10"
+    ```
+
+---
+
+## Upgrade 1.6 → 1.7
+
+### Breaking changes
+
+!!! warning "Breaking: `peft` removed from the default install"
+
+    LoRA fine-tuning now requires the `lora` extra. If you use LoRA adapters during training, update your install command.
+
+    ```bash
+    # Before
+    pip install rfdetr
+
+    # After
+    pip install 'rfdetr[lora]'
+    ```
+
+!!! warning "Breaking: `predict()` stores source image in `detections.metadata`"
+
+    **`predict()` stores the source image in `detections.metadata`, not `detections.data`.**
+
+    ```python
+    # Before (1.6.4 and earlier)
+    source = detections.data["source_image"]
+
+    # After
+    source = detections.metadata["source_image"]
+    ```
+
+!!! warning "Breaking: `pyDeprecate` constraint changed to `>=0.6,<0.8`"
+
+    Was `>=0.3,<0.6`. If another package pins an older version, resolve with:
+
+    ```bash
+    pip install "rfdetr==1.7.0" "pyDeprecate>=0.6,<0.8"
+    ```
+
+### Deprecated in v1.7 → Remove in v1.9
+
+!!! note "Deprecated: `build_namespace()` split into two functions"
+
+    **`build_namespace(model_config, train_config)`** — use `build_model_from_config` or `build_criterion_from_config` instead.
+
+    ```python
+    # Before (deprecated)
+    from rfdetr.models import build_namespace
+
+    ns = build_namespace(model_config, train_config)
+
+    # After
+    from rfdetr.models import build_model_from_config, build_criterion_from_config
+
+    model = build_model_from_config(model_config)
+    criterion = build_criterion_from_config(model_config, train_config)
+    ```
+
+!!! note "Deprecated: `load_pretrain_weights()` no longer takes `train_config`"
+
+    **`load_pretrain_weights(nn_model, model_config, train_config)`** — drop the `train_config` positional argument.
+
+    ```python
+    # Before (deprecated)
+    from rfdetr.models import load_pretrain_weights
+
+    load_pretrain_weights(nn_model, model_config, train_config)
+
+    # After
+    from rfdetr.models import load_pretrain_weights
+
+    load_pretrain_weights(nn_model, model_config)
+    ```
+
+!!! note "Deprecated: config fields moved between `ModelConfig` and `TrainConfig`"
+
+    **Config fields placed in the wrong config object.** Move them as shown:
+
+    | Field               | Was in        | Move to       |
+    | ------------------- | ------------- | ------------- |
+    | `group_detr`        | `TrainConfig` | `ModelConfig` |
+    | `ia_bce_loss`       | `TrainConfig` | `ModelConfig` |
+    | `segmentation_head` | `TrainConfig` | `ModelConfig` |
+    | `num_select`        | `TrainConfig` | `ModelConfig` |
+    | `cls_loss_coef`     | `ModelConfig` | `TrainConfig` |
+
+    ```python
+    # Before (deprecated)
+    train_config = TrainConfig(group_detr=13, cls_loss_coef=2.0)
+
+    # After
+    model_config = ModelConfig(group_detr=13)
+    train_config = TrainConfig(cls_loss_coef=2.0)
+    ```
+
+### Deprecated in v1.7 → Remove in v2.0
+
+!!! note "Deprecated: `RFDETRBase` replaced by size-specific classes"
+
+    **`RFDETRBase`** defaulted to the small variant and is replaced by size-specific classes. Choose the variant that matches your previous model size. If you used `RFDETRBase()` without arguments, switch to `RFDETRSmall()`.
+
+    ```python
+    # Before (deprecated)
+    from rfdetr import RFDETRBase
+
+    model = RFDETRBase()
+
+    # After — pick one
+    from rfdetr import RFDETRNano, RFDETRSmall, RFDETRMedium, RFDETRLarge
+
+    model = RFDETRSmall()
+    ```
+
+!!! note "Deprecated: `RFDETRSegPreview` replaced by size-specific segmentation classes"
+
+    **`RFDETRSegPreview`** defaulted to the small variant and is replaced by size-specific segmentation classes. If you used `RFDETRSegPreview()` without arguments, switch to `RFDETRSegSmall()`.
+
+    ```python
+    # Before (deprecated)
+    from rfdetr import RFDETRSegPreview
+
+    model = RFDETRSegPreview()
+
+    # After — pick one
+    from rfdetr import RFDETRSegNano, RFDETRSegSmall, RFDETRSegMedium, RFDETRSegLarge
+
+    model = RFDETRSegSmall()
+    ```
+
+---
+
+## Upgrade 1.5 → 1.6
+
+### Breaking changes
+
+!!! warning "Breaking: `transformers` minimum version raised to `>=5.1.0`"
+
+    **`transformers` minimum version raised to `>=5.1.0,<6.0.0`.**
+
+    Projects pinned to `transformers<5.0.0` must upgrade. If upgrading is not possible, pin `rfdetr<1.6.0`.
+
+    ```bash
+    pip install 'transformers>=5.1.0,<6.0.0'
+    ```
+
+!!! warning "Breaking: PyPI extras renamed"
+
+    **PyPI extras renamed.**
+
+    Update your `pip install` commands and `requirements*.txt` files.
+
+    | Old extra            | New extra         |
+    | -------------------- | ----------------- |
+    | `rfdetr[metrics]`    | `rfdetr[loggers]` |
+    | `rfdetr[onnxexport]` | `rfdetr[onnx]`    |
+
+    ```bash
+    # Before
+    pip install 'rfdetr[metrics]'
+    pip install 'rfdetr[onnxexport]'
+
+    # After
+    pip install 'rfdetr[loggers]'
+    pip install 'rfdetr[onnx]'
+    ```
+
+!!! warning "Breaking: `draw_synthetic_shape()` now returns a tuple"
+
+    **`draw_synthetic_shape()` now returns `(image, polygon)` instead of `image`.**
+
+    Update every call site that unpacks only the image.
+
+    ```python
+    # Before
+    img = draw_synthetic_shape(...)
+
+    # After
+    img, polygon = draw_synthetic_shape(...)
+    ```
+
+### Deprecated in v1.6 → Removed in v1.8
+
+!!! note "Deprecated: `simplify` and `force` arguments in `RFDETR.export()`"
+
+    **`RFDETR.export(..., simplify=..., force=...)`** — both arguments are no-ops. Remove them from your calls.
+
+    ```python
+    # Before (deprecated)
+    model.export("model.onnx", simplify=True, force=True)
+
+    # After
+    model.export("model.onnx")
+    ```
+
+### Deprecated in v1.6 → Remove in v1.9
+
+!!! note "Deprecated: `rfdetr.util.*` and `rfdetr.deploy.*` import paths"
+
+    Backward-compatibility shims are still active but emit `DeprecationWarning` on import. Replace with the canonical paths listed in the table below.
+
+    | Deprecated module                 | Canonical replacement              |
+    | --------------------------------- | ---------------------------------- |
+    | `rfdetr.util.coco_classes`        | `rfdetr.assets.coco_classes`       |
+    | `rfdetr.util.misc`                | `rfdetr.utilities`                 |
+    | `rfdetr.util.logger`              | `rfdetr.utilities.logger`          |
+    | `rfdetr.util.box_ops`             | `rfdetr.utilities.box_ops`         |
+    | `rfdetr.util.files`               | `rfdetr.utilities.files`           |
+    | `rfdetr.util.package`             | `rfdetr.utilities.package`         |
+    | `rfdetr.util.get_param_dicts`     | `rfdetr.training.param_groups`     |
+    | `rfdetr.util.drop_scheduler`      | `rfdetr.training.drop_schedule`    |
+    | `rfdetr.util.visualize`           | `rfdetr.visualize.data`            |
+    | `rfdetr.deploy`                   | `rfdetr.export`                    |
+    | `rfdetr.models.segmentation_head` | `rfdetr.models.heads.segmentation` |
+
+    **Examples:**
+
+    ```python
+    # Before (deprecated)
+    from rfdetr.util.coco_classes import COCO_CLASSES
+    from rfdetr.util.misc import get_rank, get_world_size, is_main_process, save_on_master
+    from rfdetr.util.logger import get_logger
+    from rfdetr.util.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
+    from rfdetr.util.get_param_dicts import get_param_dict
+    from rfdetr.util.drop_scheduler import drop_scheduler
+    from rfdetr.util.visualize import save_gt_predictions_visualization
+    from rfdetr.deploy import export_onnx
+    from rfdetr.models.segmentation_head import SegmentationHead
+
+    # After
+    from rfdetr.assets.coco_classes import COCO_CLASSES
+    from rfdetr.utilities.distributed import get_rank, get_world_size, is_main_process, save_on_master
+    from rfdetr.utilities.logger import get_logger
+    from rfdetr.utilities.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
+    from rfdetr.training.param_groups import get_param_dict
+    from rfdetr.training.drop_schedule import drop_scheduler
+    from rfdetr.visualize.data import save_gt_predictions_visualization
+    from rfdetr.export._onnx.exporter import OnnxExporter  # see Upgrade 1.10 → 1.11
+    from rfdetr.models.heads.segmentation import SegmentationHead
+    ```
+
+---
+
+## Upgrade 1.4 → 1.5
+
+### Breaking changes
+
+!!! warning "Breaking: `ModelConfig` rejects unknown keyword arguments"
+
+    **`ModelConfig` now raises `ValidationError` on unknown keyword arguments.**
+
+    Previously, unrecognised fields were silently ignored. Remove or rename any unrecognised keys you pass to `ModelConfig(...)`.
+
+    ```python
+    # Before — silently accepted
+    config = ModelConfig(unknown_field=True)
+
+    # Now raises ValidationError — remove the unknown key
+    config = ModelConfig()
+    ```
+
+### Deprecated in v1.5 → Removed in v1.7
+
+!!! note "Deprecated: `OPEN_SOURCE_MODELS` replaced by `ModelWeights` enum"
+
+    **`OPEN_SOURCE_MODELS` constant** — use the `ModelWeights` enum instead. A `DeprecationWarning` is emitted on access. See the [API reference](../reference/rfdetr.md) for available enum values.
+
+    ```python
+    # Before (deprecated)
+    from rfdetr import OPEN_SOURCE_MODELS
+
+    # After
+    from rfdetr.assets.model_weights import ModelWeights
+    ```

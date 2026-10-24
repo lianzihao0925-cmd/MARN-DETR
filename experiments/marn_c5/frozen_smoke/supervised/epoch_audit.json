@@ -1,0 +1,31 @@
+[
+  {
+    "epoch": 1,
+    "global_step": 4,
+    "batches": 4,
+    "all_losses_finite": true,
+    "before_checkpoint_seconds": 4.723731700330973,
+    "peak_allocated_GiB": 2.6785035133361816,
+    "peak_reserved_GiB": 3.763671875,
+    "learning_rates": [
+      6.957038105718575e-05
+    ],
+    "bank": {
+      "step": 4,
+      "microbatches": 1,
+      "unique_objects": 55,
+      "matches": 1027,
+      "invalid": 0,
+      "low_confidence": 210,
+      "low_iou": 118,
+      "duplicates": 644,
+      "eligible": 699,
+      "fill": 26,
+      "update": 6,
+      "replace": 23,
+      "valid_slots": 148,
+      "covered_classes": 59
+    },
+    "through_last_checkpoint_seconds": 6.493355106562376
+  }
+]

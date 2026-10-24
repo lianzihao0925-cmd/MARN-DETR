@@ -1,0 +1,106 @@
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 00:42:34] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=12.47s)
+creating index...
+index created!
+[2026-10-17 00:42:47] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.36s)
+creating index...
+index created!
+[2026-10-17 00:42:47] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 00:42:47] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 00:42:48] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/lightning_fabric/loggers/csv_logs.py:268: Experiment logs directory /root/autodl-tmp/project_marn-detr/runs/mechanism_pair_seed42_20261016_225833/query_only/ exists and is not empty. Previous log files in this directory will be deleted when the new ones are saved!
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/runs/mechanism_pair_seed42_20261016_225833/query_only exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 42
+TRAIN_PROGRESS {"epoch": 1, "batches": 1000, "global_step": 1000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 2000, "global_step": 2000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 3000, "global_step": 3000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 4000, "global_step": 4000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 5000, "global_step": 5000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 6000, "global_step": 6000}
+TRAIN_PROGRESS {"epoch": 1, "batches": 7000, "global_step": 7000}
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+               Val [1m([0mEpoch [1;36m1[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5285[0m │ [1;36m0.7193[0m │ [1;36m0.5706[0m │ [1;36m0.7017[0m │ [1;36m0.6980[0m │ [1;36m0.7382[0m │ [1;36m0.6694[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 1, "global_step": 7393, "batches": 7393, "all_losses_finite": true, "before_checkpoint_seconds": 1182.5707185044885, "peak_allocated_GiB": 8.860016822814941, "peak_reserved_GiB": 10.166015625, "learning_rates": [9.93861017082904e-06, 3.2127195293472495e-07, 4.0158994116840617e-07, 4.0158994116840617e-07, 5.019874264605077e-07, 5.019874264605077e-07, 6.274842830756346e-07, 6.274842830756346e-07, 7.843553538445432e-07, 7.843553538445432e-07, 9.80444192305679e-07, 9.80444192305679e-07, 1.225555240382099e-06, 1.225555240382099e-06, 1.531944050477623e-06, 1.531944050477623e-06, 1.9149300630970293e-06, 1.9149300630970293e-06, 2.393662578871286e-06, 2.393662578871286e-06, 2.9920782235891076e-06, 2.9920782235891076e-06, 3.7400977794863846e-06, 3.7400977794863846e-06, 4.675122224357981e-06, 4.675122224357981e-06, 7.3048784755593425e-06, 6.957027119580327e-06], "bank": {"step": 7393, "microbatches": 1, "unique_objects": 0, "fill": 0, "update": 0, "replace": 0, "valid_slots": 0, "covered_classes": 0}}
+TRAIN_PROGRESS {"epoch": 2, "batches": 1000, "global_step": 8393}
+TRAIN_PROGRESS {"epoch": 2, "batches": 2000, "global_step": 9393}
+TRAIN_PROGRESS {"epoch": 2, "batches": 3000, "global_step": 10393}
+TRAIN_PROGRESS {"epoch": 2, "batches": 4000, "global_step": 11393}
+TRAIN_PROGRESS {"epoch": 2, "batches": 5000, "global_step": 12393}
+TRAIN_PROGRESS {"epoch": 2, "batches": 6000, "global_step": 13393}
+TRAIN_PROGRESS {"epoch": 2, "batches": 7000, "global_step": 14393}
+               Val [1m([0mEpoch [1;36m2[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5271[0m │ [1;36m0.7170[0m │ [1;36m0.5682[0m │ [1;36m0.7009[0m │ [1;36m0.6948[0m │ [1;36m0.7557[0m │ [1;36m0.6522[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 2, "global_step": 14786, "batches": 7393, "all_losses_finite": true, "before_checkpoint_seconds": 1177.3045480810106, "peak_allocated_GiB": 8.876406192779541, "peak_reserved_GiB": 10.166015625, "learning_rates": [9.457591542102536e-06, 3.0572271701615225e-07, 3.821533962701903e-07, 3.821533962701903e-07, 4.776917453377378e-07, 4.776917453377378e-07, 5.971146816721723e-07, 5.971146816721723e-07, 7.463933520902153e-07, 7.463933520902153e-07, 9.329916901127691e-07, 9.329916901127691e-07, 1.1662396126409615e-06, 1.1662396126409615e-06, 1.4577995158012013e-06, 1.4577995158012013e-06, 1.822249394751502e-06, 1.822249394751502e-06, 2.2778117434393775e-06, 2.2778117434393775e-06, 2.8472646792992217e-06, 2.8472646792992217e-06, 3.559080849124027e-06, 3.559080849124027e-06, 4.4488510614050335e-06, 4.4488510614050335e-06, 6.951329783445363e-06, 6.620314079471775e-06], "bank": {"step": 14786, "microbatches": 1, "unique_objects": 0, "fill": 0, "update": 0, "replace": 0, "valid_slots": 0, "covered_classes": 0}}
+TRAIN_PROGRESS {"epoch": 3, "batches": 1000, "global_step": 15786}
+TRAIN_PROGRESS {"epoch": 3, "batches": 2000, "global_step": 16786}
+TRAIN_PROGRESS {"epoch": 3, "batches": 3000, "global_step": 17786}
+TRAIN_PROGRESS {"epoch": 3, "batches": 4000, "global_step": 18786}
+TRAIN_PROGRESS {"epoch": 3, "batches": 5000, "global_step": 19786}
+TRAIN_PROGRESS {"epoch": 3, "batches": 6000, "global_step": 20786}
+TRAIN_PROGRESS {"epoch": 3, "batches": 7000, "global_step": 21786}
+               Val [1m([0mEpoch [1;36m3[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5271[0m │ [1;36m0.7196[0m │ [1;36m0.5674[0m │ [1;36m0.6998[0m │ [1;36m0.6972[0m │ [1;36m0.7701[0m │ [1;36m0.6456[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 3, "global_step": 22179, "batches": 7393, "all_losses_finite": true, "before_checkpoint_seconds": 1217.2594744749367, "peak_allocated_GiB": 8.876467227935791, "peak_reserved_GiB": 10.16796875, "learning_rates": [8.547712511910622e-06, 2.763102933533248e-07, 3.4538786669165596e-07, 3.4538786669165596e-07, 4.317348333645699e-07, 4.317348333645699e-07, 5.396685417057124e-07, 5.396685417057124e-07, 6.745856771321404e-07, 6.745856771321404e-07, 8.432320964151755e-07, 8.432320964151755e-07, 1.0540401205189695e-06, 1.0540401205189695e-06, 1.3175501506487113e-06, 1.3175501506487113e-06, 1.6469376883108894e-06, 1.6469376883108894e-06, 2.0586721103886117e-06, 2.0586721103886117e-06, 2.5733401379857645e-06, 2.5733401379857645e-06, 3.2166751724822055e-06, 3.2166751724822055e-06, 4.020843965602757e-06, 4.020843965602757e-06, 6.282568696254306e-06, 5.983398758337435e-06], "bank": {"step": 22179, "microbatches": 1, "unique_objects": 0, "fill": 0, "update": 0, "replace": 0, "valid_slots": 0, "covered_classes": 0}}
+TRAIN_PROGRESS {"epoch": 4, "batches": 1000, "global_step": 23179}
+TRAIN_PROGRESS {"epoch": 4, "batches": 2000, "global_step": 24179}
+TRAIN_PROGRESS {"epoch": 4, "batches": 3000, "global_step": 25179}
+TRAIN_PROGRESS {"epoch": 4, "batches": 4000, "global_step": 26179}
+TRAIN_PROGRESS {"epoch": 4, "batches": 5000, "global_step": 27179}
+TRAIN_PROGRESS {"epoch": 4, "batches": 6000, "global_step": 28179}
+TRAIN_PROGRESS {"epoch": 4, "batches": 7000, "global_step": 29179}
+               Val [1m([0mEpoch [1;36m4[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5279[0m │ [1;36m0.7199[0m │ [1;36m0.5693[0m │ [1;36m0.7029[0m │ [1;36m0.6960[0m │ [1;36m0.7530[0m │ [1;36m0.6562[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 4, "global_step": 29572, "batches": 7393, "all_losses_finite": true, "before_checkpoint_seconds": 1199.5313041508198, "peak_allocated_GiB": 8.876589298248291, "peak_reserved_GiB": 10.16796875, "learning_rates": [7.307571200352816e-06, 2.3622192946431508e-07, 2.9527741183039384e-07, 2.9527741183039384e-07, 3.690967647879922e-07, 3.690967647879922e-07, 4.613709559849903e-07, 4.613709559849903e-07, 5.767136949812378e-07, 5.767136949812378e-07, 7.208921187265473e-07, 7.208921187265473e-07, 9.011151484081843e-07, 9.011151484081843e-07, 1.1263939355102298e-06, 1.1263939355102298e-06, 1.4079924193877876e-06, 1.4079924193877876e-06, 1.7599905242347342e-06, 1.7599905242347342e-06, 2.1999881552934177e-06, 2.1999881552934177e-06, 2.749985194116772e-06, 2.749985194116772e-06, 3.4374814926459654e-06, 3.4374814926459654e-06, 5.371064832259319e-06, 5.115299840246971e-06], "bank": {"step": 29572, "microbatches": 1, "unique_objects": 0, "fill": 0, "update": 0, "replace": 0, "valid_slots": 0, "covered_classes": 0}}
+[2026-10-17 02:02:39] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 02:02:39] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 02:02:40] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 02:02:40] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 02:02:43] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 02:02:43] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 02:02:43] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 02:02:43] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+MECHANISM_ARM_COMPLETED query_only

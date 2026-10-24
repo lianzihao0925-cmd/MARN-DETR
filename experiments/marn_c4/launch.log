@@ -1,0 +1,64 @@
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-16 22:37:09] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=12.53s)
+creating index...
+index created!
+[2026-10-16 22:37:23] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.33s)
+creating index...
+index created!
+[2026-10-16 22:37:23] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 22:37:23] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 22:37:24] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/loops/fit_loop.py:321: The number of training batches (2) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+               Val [1m([0mEpoch [1;36m1[0m/[1;36m4[0m[1m)[0m — Overall Metrics                
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.6342[0m │ [1;36m0.7821[0m │ [1;36m0.6998[0m │ [1;36m0.7170[0m │ [1;36m0.6853[0m │ [1;36m0.7031[0m │ [1;36m0.7277[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 1, "global_step": 1, "batches": 2, "all_losses_finite": true, "before_checkpoint_seconds": 3.3293495140969753, "peak_allocated_GiB": 4.53095817565918, "peak_reserved_GiB": 5.373046875, "learning_rates": [8.681980515339464e-06, 2.8065059274496817e-07, 3.5081324093121024e-07, 3.5081324093121024e-07, 4.385165511640127e-07, 4.385165511640127e-07, 5.481456889550159e-07, 5.481456889550159e-07, 6.851821111937698e-07, 6.851821111937698e-07, 8.564776389922123e-07, 8.564776389922123e-07, 1.0705970487402656e-06, 1.0705970487402656e-06, 1.3382463109253314e-06, 1.3382463109253314e-06, 1.6728078886566645e-06, 1.6728078886566645e-06, 2.0910098608208306e-06, 2.0910098608208306e-06, 2.613762326026038e-06, 2.613762326026038e-06, 3.2672029075325477e-06, 3.2672029075325477e-06, 4.0840036344156844e-06, 4.0840036344156844e-06, 6.381255678774505e-06, 6.077386360737624e-06], "bank": {"step": 1, "microbatches": 2, "unique_objects": 78, "matches": 1118, "invalid": 0, "low_confidence": 96, "low_iou": 23, "duplicates": 921, "eligible": 999, "fill": 44, "update": 6, "replace": 28, "valid_slots": 44, "covered_classes": 24}}
+               Val [1m([0mEpoch [1;36m2[0m/[1;36m4[0m[1m)[0m — Overall Metrics                
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.6324[0m │ [1;36m0.7800[0m │ [1;36m0.7014[0m │ [1;36m0.7093[0m │ [1;36m0.6864[0m │ [1;36m0.7027[0m │ [1;36m0.7257[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 2, "global_step": 2, "batches": 2, "all_losses_finite": true, "before_checkpoint_seconds": 1.624305333942175, "peak_allocated_GiB": 4.8338823318481445, "peak_reserved_GiB": 5.544921875, "learning_rates": [5.500000000000001e-06, 1.7779103021137933e-07, 2.2223878776422415e-07, 2.2223878776422415e-07, 2.7779848470528015e-07, 2.7779848470528015e-07, 3.472481058816002e-07, 3.472481058816002e-07, 4.340601323520002e-07, 4.340601323520002e-07, 5.425751654400003e-07, 5.425751654400003e-07, 6.782189568000005e-07, 6.782189568000005e-07, 8.477736960000001e-07, 8.477736960000001e-07, 1.0597171200000005e-06, 1.0597171200000005e-06, 1.3246464000000004e-06, 1.3246464000000004e-06, 1.6558080000000005e-06, 1.6558080000000005e-06, 2.0697600000000007e-06, 2.0697600000000007e-06, 2.587200000000001e-06, 2.587200000000001e-06, 4.0425e-06, 3.85e-06], "bank": {"step": 2, "microbatches": 2, "unique_objects": 81, "matches": 1222, "invalid": 0, "low_confidence": 157, "low_iou": 33, "duplicates": 951, "eligible": 1032, "fill": 42, "update": 9, "replace": 30, "valid_slots": 86, "covered_classes": 42}}
+               Val [1m([0mEpoch [1;36m3[0m/[1;36m4[0m[1m)[0m — Overall Metrics                
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.6304[0m │ [1;36m0.7817[0m │ [1;36m0.6980[0m │ [1;36m0.7103[0m │ [1;36m0.6856[0m │ [1;36m0.7036[0m │ [1;36m0.7277[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_AUDIT {"epoch": 3, "global_step": 3, "batches": 2, "all_losses_finite": true, "before_checkpoint_seconds": 1.6897129006683826, "peak_allocated_GiB": 4.834415435791016, "peak_reserved_GiB": 5.544921875, "learning_rates": [2.3180194846605367e-06, 7.493146767779043e-08, 9.366433459723803e-08, 9.366433459723803e-08, 1.1708041824654752e-07, 1.1708041824654752e-07, 1.4635052280818441e-07, 1.4635052280818441e-07, 1.8293815351023048e-07, 1.8293815351023048e-07, 2.286726918877881e-07, 2.286726918877881e-07, 2.858408648597352e-07, 2.858408648597352e-07, 3.573010810746688e-07, 3.573010810746688e-07, 4.4662635134333614e-07, 4.4662635134333614e-07, 5.582829391791701e-07, 5.582829391791701e-07, 6.978536739739626e-07, 6.978536739739626e-07, 8.723170924674532e-07, 8.723170924674532e-07, 1.0903963655843166e-06, 1.0903963655843166e-06, 1.7037443212254942e-06, 1.6226136392623754e-06], "bank": {"step": 3, "microbatches": 2, "unique_objects": 132, "matches": 2249, "invalid": 0, "low_confidence": 445, "low_iou": 173, "duplicates": 1499, "eligible": 1631, "fill": 38, "update": 15, "replace": 79, "valid_slots": 124, "covered_classes": 53}}
+Traceback (most recent call last):
+  File "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_formal.py", line 140, in <module>
+    try:main()
+        ^^^^^^
+  File "/root/autodl-tmp/project_marn-detr/experiments/marn_c4/check_formal.py", line 93, in main
+    else:assert c['epoch']==0 and c['global_step']==1
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+C4_RESULT {"passed": false, "stage": "three_short_epochs", "scope": "engineering only; synthetic plateau scores are not research AP", "error": "AssertionError()", "total_seconds": 31.934774216264486}

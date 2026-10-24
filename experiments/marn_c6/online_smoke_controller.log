@@ -1,0 +1,1 @@
+BUDGET_JOB_DONE {"name": "online_smoke", "started_unix": 1792243975.1855175, "limit_seconds": 600, "command": ["/root/miniconda3/envs/marn-detr/bin/python", "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/run_online_screen.py", "--smoke", "--tag", "online_smoke"], "pid": 255061, "exit_code": 0, "seconds": 121.62259697914124, "finished_unix": 1792244096.8081172}

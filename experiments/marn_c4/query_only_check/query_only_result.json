@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "total_parameters": 32194630,
+  "adapter_parameters": 83460,
+  "checks": [
+    "parameter_count_equal",
+    "zero_init_identity",
+    "key_gradient_after_second_update",
+    "no_bank_reads_or_writes",
+    "eval_read_only",
+    "real_data_accumulation_and_ema",
+    "variant_metadata",
+    "regular_ema_exact_state_and_predictions"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "passed": false,
+  "started_unix": 1792236154.0077455,
+  "hard_stop_unix": 1792236754.0077455,
+  "scope": "frozen official detector; adapter-only single seed three-arm pilot",
+  "arms": [
+    {
+      "kind": "query_only",
+      "pid": 247916,
+      "started_unix": 1792236154.00898,
+      "exit_code": 1,
+      "seconds": 5.972515344619751
+    }
+  ]
+}

@@ -1,0 +1,336 @@
+Seed set to 42
+[2026-10-16 16:28:50] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+[2026-10-16 16:28:50] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 16:28:50] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 16:28:52] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+INITIAL_EVALUATION_STARTED maxDets=100
+[2026-10-16 16:28:53] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 16:28:53] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 16:28:54] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.79s)
+creating index...
+index created!
+/root/autodl-tmp/project_marn-detr/runs/baseline_10ep_seed42/train_baseline.py:145: UserWarning: Dataset '/root/autodl-tmp/project_marn-detr/datasets/coco' has 80 classes but the model has num_classes=90. Evaluating with the model's head unchanged; class indices may not line up with the dataset.
+  initial = model.evaluate(split="val", **eval_config)
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+              Val [1m([0mEpoch [1;36m1[0m/[1;36m100[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5292[0m │ [1;36m0.7203[0m │ [1;36m0.5705[0m │ [1;36m0.7039[0m │ [1;36m0.6971[0m │ [1;36m0.7668[0m │ [1;36m0.6483[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Validate metric      ┃       DataLoader 0        ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│          val/F1           │    0.6970772743225098     │
+│        val/mAP_50         │    0.7202571034431458     │
+│       val/mAP_50_95       │    0.5292240381240845     │
+│        val/mAP_75         │    0.5704635381698608     │
+│          val/mAR          │    0.7039456367492676     │
+│       val/precision       │    0.7668222784996033     │
+│        val/recall         │    0.6483316421508789     │
+└───────────────────────────┴───────────────────────────┘
+INITIAL_EVALUATION_COMPLETED {"val/mAP_50_95": 0.5292240381240845, "val/mAP_50": 0.7202571034431458, "val/mAP_75": 0.5704635381698608, "val/mAR": 0.7039456367492676, "val/F1": 0.6970772743225098, "val/precision": 0.7668222784996033, "val/recall": 0.6483316421508789}
+FORMAL_BASELINE_STARTED epochs=10 seed=42 batch=16 maxDets=100
+[2026-10-16 16:29:17] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 16:29:17] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 16:29:19] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/lightning_fabric/loggers/csv_logs.py:268: Experiment logs directory /root/autodl-tmp/project_marn-detr/runs/baseline_10ep_seed42/ exists and is not empty. Previous log files in this directory will be deleted when the new ones are saved!
+[2026-10-16 16:29:20] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1494: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=13.15s)
+creating index...
+index created!
+[2026-10-16 16:29:34] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=1.86s)
+creating index...
+index created!
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /root/autodl-tmp/project_marn-detr/runs/baseline_10ep_seed42 exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pytorch_lightning/utilities/model_summary/model_summary.py:242: Precision bf16-mixed is not supported by the model summary.  Estimated model size in MB will not be accurate. Using 32 bits instead.
+┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃   ┃ Name        ┃ Type         ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0 │ model       │ LWDETR       │ 32.1 M │ train │     0 │
+│ 1 │ criterion   │ SetCriterion │      0 │ train │     0 │
+│ 2 │ postprocess │ PostProcess  │      0 │ train │     0 │
+└───┴─────────────┴──────────────┴────────┴───────┴───────┘
+Trainable params: 32.1 M                                                        
+Non-trainable params: 0                                                         
+Total params: 32.1 M                                                            
+Total estimated model params size (MB): 128.445                                 
+Modules in train mode: 466                                                      
+Modules in eval mode: 0                                                         
+Total FLOPs: 0                                                                  
+Seed set to 42
+EPOCH_STARTED epoch=1/10
+TRAIN_PROGRESS epoch=1 batches=500 global_step=500 loss=5.680441856384277
+TRAIN_PROGRESS epoch=1 batches=1000 global_step=1000 loss=4.985280513763428
+TRAIN_PROGRESS epoch=1 batches=1500 global_step=1500 loss=5.0998640060424805
+TRAIN_PROGRESS epoch=1 batches=2000 global_step=2000 loss=5.19500732421875
+TRAIN_PROGRESS epoch=1 batches=2500 global_step=2500 loss=4.107844829559326
+TRAIN_PROGRESS epoch=1 batches=3000 global_step=3000 loss=4.340089797973633
+TRAIN_PROGRESS epoch=1 batches=3500 global_step=3500 loss=4.554666519165039
+TRAIN_PROGRESS epoch=1 batches=4000 global_step=4000 loss=5.205008506774902
+TRAIN_PROGRESS epoch=1 batches=4500 global_step=4500 loss=5.791802406311035
+TRAIN_PROGRESS epoch=1 batches=5000 global_step=5000 loss=5.464034080505371
+TRAIN_PROGRESS epoch=1 batches=5500 global_step=5500 loss=5.115926265716553
+TRAIN_PROGRESS epoch=1 batches=6000 global_step=6000 loss=5.384675979614258
+TRAIN_PROGRESS epoch=1 batches=6500 global_step=6500 loss=5.218646049499512
+TRAIN_PROGRESS epoch=1 batches=7000 global_step=7000 loss=5.468440532684326
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+               Val [1m([0mEpoch [1;36m1[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5277[0m │ [1;36m0.7187[0m │ [1;36m0.5681[0m │ [1;36m0.7012[0m │ [1;36m0.6971[0m │ [1;36m0.7624[0m │ [1;36m0.6506[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+[2026-10-16 16:48:26] [INFO] rf-detr - Best regular checkpoint saved to /root/autodl-tmp/project_marn-detr/runs/baseline_10ep_seed42/checkpoint_best_regular.pth (epoch 0, monitor=val/mAP_50_95, value=0.527681)
+[2026-10-16 16:48:26] [INFO] rf-detr - Best EMA metric improved to 0.5266 (epoch 0)
+EPOCH_RESULT {"epoch": 1, "global_step": 7393, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1129.3282718397677, "total_elapsed_seconds": 1210.4195261485875, "learning_rates": [9.93861017082904e-06, 3.2127195293472495e-07, 4.0158994116840617e-07, 4.0158994116840617e-07, 5.019874264605077e-07, 5.019874264605077e-07, 6.274842830756346e-07, 6.274842830756346e-07, 7.843553538445432e-07, 7.843553538445432e-07, 9.80444192305679e-07, 9.80444192305679e-07, 1.225555240382099e-06, 1.225555240382099e-06, 1.531944050477623e-06, 1.531944050477623e-06, 1.9149300630970293e-06, 1.9149300630970293e-06, 2.393662578871286e-06, 2.393662578871286e-06, 2.9920782235891076e-06, 2.9920782235891076e-06, 3.7400977794863846e-06, 3.7400977794863846e-06, 4.675122224357981e-06, 4.675122224357981e-06, 7.3048784755593425e-06, 6.957027119580327e-06], "metrics": {"loss": 5.131724834442139, "loss_cls": 0.6664194464683533, "loss_box": 0.03072141855955124, "loss_giou": 0.20760758221149445, "train/lr": 9.938643415807746e-06, "train/lr_min": 3.212730348423065e-07, "train/lr_max": 9.938643415807746e-06, "val/mAP_50_95": 0.5276806950569153, "val/mAP_50": 0.7187420129776001, "val/mAP_75": 0.5681278705596924, "val/mAR": 0.7012099623680115, "val/ema_mAP_50_95": 0.5265977382659912, "val/ema_mAP_50": 0.7182873487472534, "val/ema_mAP_75": 0.5668670535087585, "val/ema_mAR": 0.7001862525939941, "val/F1": 0.6971446871757507, "val/precision": 0.7624107599258423, "val/recall": 0.6505551338195801, "train/loss_ce": 0.6509754657745361, "train/class_error": 4.506012439727783, "train/loss_bbox": 0.03205613046884537, "train/loss_giou": 0.19562992453575134, "train/cardinality_error": 48.693450927734375, "train/cardinality_error_0": 46.38474655151367, "train/cardinality_error_1": 48.44511795043945, "train/cardinality_error_enc": 47.12565994262695, "train/loss_ce_aux": 2.0334017276763916, "train/loss_bbox_aux": 0.10965394228696823, "train/loss_giou_aux": 0.6288671493530273, "train/loss": 5.041924476623535}}
+EPOCH_STARTED epoch=2/10
+TRAIN_PROGRESS epoch=2 batches=500 global_step=7893 loss=4.913329124450684
+TRAIN_PROGRESS epoch=2 batches=1000 global_step=8393 loss=4.611429214477539
+TRAIN_PROGRESS epoch=2 batches=1500 global_step=8893 loss=4.917308807373047
+TRAIN_PROGRESS epoch=2 batches=2000 global_step=9393 loss=4.863661766052246
+TRAIN_PROGRESS epoch=2 batches=2500 global_step=9893 loss=5.481356620788574
+TRAIN_PROGRESS epoch=2 batches=3000 global_step=10393 loss=4.327742099761963
+TRAIN_PROGRESS epoch=2 batches=3500 global_step=10893 loss=5.759613513946533
+TRAIN_PROGRESS epoch=2 batches=4000 global_step=11393 loss=4.914534091949463
+TRAIN_PROGRESS epoch=2 batches=4500 global_step=11893 loss=4.566001892089844
+TRAIN_PROGRESS epoch=2 batches=5000 global_step=12393 loss=5.198791980743408
+TRAIN_PROGRESS epoch=2 batches=5500 global_step=12893 loss=5.351435661315918
+TRAIN_PROGRESS epoch=2 batches=6000 global_step=13393 loss=4.58180570602417
+TRAIN_PROGRESS epoch=2 batches=6500 global_step=13893 loss=5.312167167663574
+TRAIN_PROGRESS epoch=2 batches=7000 global_step=14393 loss=4.874448299407959
+               Val [1m([0mEpoch [1;36m2[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5259[0m │ [1;36m0.7177[0m │ [1;36m0.5664[0m │ [1;36m0.6988[0m │ [1;36m0.6960[0m │ [1;36m0.7473[0m │ [1;36m0.6589[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_RESULT {"epoch": 2, "global_step": 14786, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1136.7507316060364, "total_elapsed_seconds": 2348.4157651253045, "learning_rates": [9.457591542102536e-06, 3.0572271701615225e-07, 3.821533962701903e-07, 3.821533962701903e-07, 4.776917453377378e-07, 4.776917453377378e-07, 5.971146816721723e-07, 5.971146816721723e-07, 7.463933520902153e-07, 7.463933520902153e-07, 9.329916901127691e-07, 9.329916901127691e-07, 1.1662396126409615e-06, 1.1662396126409615e-06, 1.4577995158012013e-06, 1.4577995158012013e-06, 1.822249394751502e-06, 1.822249394751502e-06, 2.2778117434393775e-06, 2.2778117434393775e-06, 2.8472646792992217e-06, 2.8472646792992217e-06, 3.559080849124027e-06, 3.559080849124027e-06, 4.4488510614050335e-06, 4.4488510614050335e-06, 6.951329783445363e-06, 6.620314079471775e-06], "metrics": {"loss": 4.756126403808594, "loss_cls": 0.635077953338623, "loss_box": 0.024810893461108208, "loss_giou": 0.18863815069198608, "train/lr": 9.457687156100292e-06, "train/lr_min": 3.0572581977139635e-07, "train/lr_max": 9.457687156100292e-06, "val/mAP_50_95": 0.525898814201355, "val/mAP_50": 0.7176811099052429, "val/mAP_75": 0.5664093494415283, "val/mAR": 0.6987930536270142, "val/ema_mAP_50_95": 0.5264613628387451, "val/ema_mAP_50": 0.7180913686752319, "val/ema_mAP_75": 0.5667752027511597, "val/ema_mAR": 0.7000605463981628, "val/F1": 0.6959533095359802, "val/precision": 0.7472862005233765, "val/recall": 0.658896803855896, "train/loss_ce": 0.6510627269744873, "train/class_error": 4.514182090759277, "train/loss_bbox": 0.032035551965236664, "train/loss_giou": 0.19515736401081085, "train/cardinality_error": 48.804115295410156, "train/cardinality_error_0": 46.47195053100586, "train/cardinality_error_1": 48.55307388305664, "train/cardinality_error_enc": 47.243263244628906, "train/loss_ce_aux": 2.033885955810547, "train/loss_bbox_aux": 0.10975511372089386, "train/loss_giou_aux": 0.6278128027915955, "train/loss": 5.03984260559082}}
+EPOCH_STARTED epoch=3/10
+TRAIN_PROGRESS epoch=3 batches=500 global_step=15286 loss=5.85586404800415
+TRAIN_PROGRESS epoch=3 batches=1000 global_step=15786 loss=5.724819183349609
+TRAIN_PROGRESS epoch=3 batches=1500 global_step=16286 loss=4.890645980834961
+TRAIN_PROGRESS epoch=3 batches=2000 global_step=16786 loss=5.684758186340332
+TRAIN_PROGRESS epoch=3 batches=2500 global_step=17286 loss=4.793599605560303
+TRAIN_PROGRESS epoch=3 batches=3000 global_step=17786 loss=5.018054962158203
+TRAIN_PROGRESS epoch=3 batches=3500 global_step=18286 loss=5.3298773765563965
+TRAIN_PROGRESS epoch=3 batches=4000 global_step=18786 loss=4.509794235229492
+TRAIN_PROGRESS epoch=3 batches=4500 global_step=19286 loss=5.0857696533203125
+TRAIN_PROGRESS epoch=3 batches=5000 global_step=19786 loss=5.260881423950195
+TRAIN_PROGRESS epoch=3 batches=5500 global_step=20286 loss=5.489706516265869
+TRAIN_PROGRESS epoch=3 batches=6000 global_step=20786 loss=5.301359176635742
+TRAIN_PROGRESS epoch=3 batches=6500 global_step=21286 loss=5.306372165679932
+TRAIN_PROGRESS epoch=3 batches=7000 global_step=21786 loss=5.742455005645752
+               Val [1m([0mEpoch [1;36m3[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5261[0m │ [1;36m0.7179[0m │ [1;36m0.5669[0m │ [1;36m0.7008[0m │ [1;36m0.6966[0m │ [1;36m0.7688[0m │ [1;36m0.6468[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+[2026-10-16 17:26:20] [INFO] rf-detr - Best EMA metric improved to 0.5266 (epoch 2)
+EPOCH_RESULT {"epoch": 3, "global_step": 22179, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1133.7292531989515, "total_elapsed_seconds": 3484.112924095243, "learning_rates": [8.547712511910622e-06, 2.763102933533248e-07, 3.4538786669165596e-07, 3.4538786669165596e-07, 4.317348333645699e-07, 4.317348333645699e-07, 5.396685417057124e-07, 5.396685417057124e-07, 6.745856771321404e-07, 6.745856771321404e-07, 8.432320964151755e-07, 8.432320964151755e-07, 1.0540401205189695e-06, 1.0540401205189695e-06, 1.3175501506487113e-06, 1.3175501506487113e-06, 1.6469376883108894e-06, 1.6469376883108894e-06, 2.0586721103886117e-06, 2.0586721103886117e-06, 2.5733401379857645e-06, 2.5733401379857645e-06, 3.2166751724822055e-06, 3.2166751724822055e-06, 4.020843965602757e-06, 4.020843965602757e-06, 6.282568696254306e-06, 5.983398758337435e-06], "metrics": {"loss": 4.723639488220215, "loss_cls": 0.6196144819259644, "loss_box": 0.02383132465183735, "loss_giou": 0.19362111389636993, "train/lr": 8.547860488761216e-06, "train/lr_min": 2.7631509169623314e-07, "train/lr_max": 8.547860488761216e-06, "val/mAP_50_95": 0.5260786414146423, "val/mAP_50": 0.7178662419319153, "val/mAP_75": 0.5668615698814392, "val/mAR": 0.7007627487182617, "val/ema_mAP_50_95": 0.5266071557998657, "val/ema_mAP_50": 0.717478334903717, "val/ema_mAP_75": 0.5678317546844482, "val/ema_mAR": 0.7010310888290405, "val/F1": 0.6966331005096436, "val/precision": 0.7687743306159973, "val/recall": 0.6468338966369629, "train/loss_ce": 0.6494966745376587, "train/class_error": 4.467700481414795, "train/loss_bbox": 0.03198925405740738, "train/loss_giou": 0.19539512693881989, "train/cardinality_error": 49.0521354675293, "train/cardinality_error_0": 46.69926071166992, "train/cardinality_error_1": 48.78499984741211, "train/cardinality_error_enc": 47.44990921020508, "train/loss_ce_aux": 2.029499053955078, "train/loss_bbox_aux": 0.10934501141309738, "train/loss_giou_aux": 0.6277867555618286, "train/loss": 5.032033443450928}}
+EPOCH_STARTED epoch=4/10
+TRAIN_PROGRESS epoch=4 batches=500 global_step=22679 loss=4.575259208679199
+TRAIN_PROGRESS epoch=4 batches=1000 global_step=23179 loss=5.168927192687988
+TRAIN_PROGRESS epoch=4 batches=1500 global_step=23679 loss=4.8436737060546875
+TRAIN_PROGRESS epoch=4 batches=2000 global_step=24179 loss=5.961066246032715
+TRAIN_PROGRESS epoch=4 batches=2500 global_step=24679 loss=5.058044910430908
+TRAIN_PROGRESS epoch=4 batches=3000 global_step=25179 loss=4.658180236816406
+TRAIN_PROGRESS epoch=4 batches=3500 global_step=25679 loss=5.207921981811523
+TRAIN_PROGRESS epoch=4 batches=4000 global_step=26179 loss=4.900333404541016
+TRAIN_PROGRESS epoch=4 batches=4500 global_step=26679 loss=5.023704528808594
+TRAIN_PROGRESS epoch=4 batches=5000 global_step=27179 loss=5.480881214141846
+TRAIN_PROGRESS epoch=4 batches=5500 global_step=27679 loss=5.299041271209717
+TRAIN_PROGRESS epoch=4 batches=6000 global_step=28179 loss=4.821351528167725
+TRAIN_PROGRESS epoch=4 batches=6500 global_step=28679 loss=4.444960594177246
+TRAIN_PROGRESS epoch=4 batches=7000 global_step=29179 loss=4.986143589019775
+               Val [1m([0mEpoch [1;36m4[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5269[0m │ [1;36m0.7178[0m │ [1;36m0.5680[0m │ [1;36m0.7004[0m │ [1;36m0.6978[0m │ [1;36m0.7617[0m │ [1;36m0.6531[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+[2026-10-16 17:45:19] [INFO] rf-detr - Best EMA metric improved to 0.5268 (epoch 3)
+EPOCH_RESULT {"epoch": 4, "global_step": 29572, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1137.4213546738029, "total_elapsed_seconds": 4623.453350093216, "learning_rates": [7.307571200352816e-06, 2.3622192946431508e-07, 2.9527741183039384e-07, 2.9527741183039384e-07, 3.690967647879922e-07, 3.690967647879922e-07, 4.613709559849903e-07, 4.613709559849903e-07, 5.767136949812378e-07, 5.767136949812378e-07, 7.208921187265473e-07, 7.208921187265473e-07, 9.011151484081843e-07, 9.011151484081843e-07, 1.1263939355102298e-06, 1.1263939355102298e-06, 1.4079924193877876e-06, 1.4079924193877876e-06, 1.7599905242347342e-06, 1.7599905242347342e-06, 2.1999881552934177e-06, 2.1999881552934177e-06, 2.749985194116772e-06, 2.749985194116772e-06, 3.4374814926459654e-06, 3.4374814926459654e-06, 5.371064832259319e-06, 5.115299840246971e-06], "metrics": {"loss": 4.957540035247803, "loss_cls": 0.6615033745765686, "loss_box": 0.0315881073474884, "loss_giou": 0.18127036094665527, "train/lr": 7.307755367946811e-06, "train/lr_min": 2.3622789058208582e-07, "train/lr_max": 7.307755367946811e-06, "val/mAP_50_95": 0.5269102454185486, "val/mAP_50": 0.7177998423576355, "val/mAP_75": 0.5679812431335449, "val/mAR": 0.7003792524337769, "val/ema_mAP_50_95": 0.5267599821090698, "val/ema_mAP_50": 0.7179092168807983, "val/ema_mAP_75": 0.5678419470787048, "val/ema_mAR": 0.7010867595672607, "val/F1": 0.6978358626365662, "val/precision": 0.7616595029830933, "val/recall": 0.6531253457069397, "train/loss_ce": 0.6476723551750183, "train/class_error": 4.395867347717285, "train/loss_bbox": 0.03192592412233353, "train/loss_giou": 0.19503609836101532, "train/cardinality_error": 49.153076171875, "train/cardinality_error_0": 46.84239196777344, "train/cardinality_error_1": 48.860958099365234, "train/cardinality_error_enc": 47.630374908447266, "train/loss_ce_aux": 2.0237998962402344, "train/loss_bbox_aux": 0.10922811925411224, "train/loss_giou_aux": 0.6265234351158142, "train/loss": 5.020359516143799}}
+EPOCH_STARTED epoch=5/10
+TRAIN_PROGRESS epoch=5 batches=500 global_step=30072 loss=5.321249961853027
+TRAIN_PROGRESS epoch=5 batches=1000 global_step=30572 loss=5.329889297485352
+TRAIN_PROGRESS epoch=5 batches=1500 global_step=31072 loss=4.5623979568481445
+TRAIN_PROGRESS epoch=5 batches=2000 global_step=31572 loss=4.811006546020508
+TRAIN_PROGRESS epoch=5 batches=2500 global_step=32072 loss=4.8186445236206055
+TRAIN_PROGRESS epoch=5 batches=3000 global_step=32572 loss=4.868470668792725
+TRAIN_PROGRESS epoch=5 batches=3500 global_step=33072 loss=5.0375494956970215
+TRAIN_PROGRESS epoch=5 batches=4000 global_step=33572 loss=4.158951759338379
+TRAIN_PROGRESS epoch=5 batches=4500 global_step=34072 loss=5.293718338012695
+TRAIN_PROGRESS epoch=5 batches=5000 global_step=34572 loss=4.939570426940918
+TRAIN_PROGRESS epoch=5 batches=5500 global_step=35072 loss=5.017421722412109
+TRAIN_PROGRESS epoch=5 batches=6000 global_step=35572 loss=5.995057106018066
+TRAIN_PROGRESS epoch=5 batches=6500 global_step=36072 loss=4.764312744140625
+TRAIN_PROGRESS epoch=5 batches=7000 global_step=36572 loss=5.103580474853516
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+               Val [1m([0mEpoch [1;36m5[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5267[0m │ [1;36m0.7181[0m │ [1;36m0.5670[0m │ [1;36m0.7015[0m │ [1;36m0.6962[0m │ [1;36m0.7478[0m │ [1;36m0.6612[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+[2026-10-16 18:04:22] [INFO] rf-detr - Best EMA metric improved to 0.5271 (epoch 4)
+EPOCH_RESULT {"epoch": 5, "global_step": 36965, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1141.1495052054524, "total_elapsed_seconds": 5766.714858345687, "learning_rates": [5.871554265347327e-06, 1.8980176032329445e-07, 2.3725220040411807e-07, 2.3725220040411807e-07, 2.9656525050514757e-07, 2.9656525050514757e-07, 3.7070656313143446e-07, 3.7070656313143446e-07, 4.63383203914293e-07, 4.63383203914293e-07, 5.792290048928663e-07, 5.792290048928663e-07, 7.24036256116083e-07, 7.24036256116083e-07, 9.050453201451033e-07, 9.050453201451033e-07, 1.1313066501813792e-06, 1.1313066501813792e-06, 1.414133312726724e-06, 1.414133312726724e-06, 1.767666640908405e-06, 1.767666640908405e-06, 2.209583301135506e-06, 2.209583301135506e-06, 2.761979126419383e-06, 2.761979126419383e-06, 4.3155923850302844e-06, 4.110087985743128e-06], "metrics": {"loss": 4.774044036865234, "loss_cls": 0.6637792587280273, "loss_box": 0.03534773364663124, "loss_giou": 0.14793220162391663, "train/lr": 5.8717546380648855e-06, "train/lr_min": 1.898082473417162e-07, "train/lr_max": 5.8717546380648855e-06, "val/mAP_50_95": 0.526651918888092, "val/mAP_50": 0.7181222438812256, "val/mAP_75": 0.5670185089111328, "val/mAR": 0.7015430331230164, "val/ema_mAP_50_95": 0.5270782113075256, "val/ema_mAP_50": 0.7192099690437317, "val/ema_mAP_75": 0.566709578037262, "val/ema_mAR": 0.7003523111343384, "val/F1": 0.6962495446205139, "val/precision": 0.7477937936782837, "val/recall": 0.6612364053726196, "train/loss_ce": 0.6454143524169922, "train/class_error": 4.333479404449463, "train/loss_bbox": 0.031836118549108505, "train/loss_giou": 0.19433413445949554, "train/cardinality_error": 49.312992095947266, "train/cardinality_error_0": 47.024871826171875, "train/cardinality_error_1": 49.06832504272461, "train/cardinality_error_enc": 47.77358627319336, "train/loss_ce_aux": 2.0170817375183105, "train/loss_bbox_aux": 0.10863793641328812, "train/loss_giou_aux": 0.623759925365448, "train/loss": 5.0010600090026855}}
+EPOCH_STARTED epoch=6/10
+TRAIN_PROGRESS epoch=6 batches=500 global_step=37465 loss=4.646506309509277
+TRAIN_PROGRESS epoch=6 batches=1000 global_step=37965 loss=5.381244659423828
+TRAIN_PROGRESS epoch=6 batches=1500 global_step=38465 loss=4.958861351013184
+TRAIN_PROGRESS epoch=6 batches=2000 global_step=38965 loss=4.75056266784668
+TRAIN_PROGRESS epoch=6 batches=2500 global_step=39465 loss=3.9680287837982178
+TRAIN_PROGRESS epoch=6 batches=3000 global_step=39965 loss=5.125996112823486
+TRAIN_PROGRESS epoch=6 batches=3500 global_step=40465 loss=4.730574131011963
+TRAIN_PROGRESS epoch=6 batches=4000 global_step=40965 loss=5.0481061935424805
+TRAIN_PROGRESS epoch=6 batches=4500 global_step=41465 loss=4.395773887634277
+TRAIN_PROGRESS epoch=6 batches=5000 global_step=41965 loss=5.734153747558594
+TRAIN_PROGRESS epoch=6 batches=5500 global_step=42465 loss=5.169425964355469
+TRAIN_PROGRESS epoch=6 batches=6000 global_step=42965 loss=4.707672119140625
+TRAIN_PROGRESS epoch=6 batches=6500 global_step=43465 loss=5.241485595703125
+TRAIN_PROGRESS epoch=6 batches=7000 global_step=43965 loss=5.262476921081543
+               Val [1m([0mEpoch [1;36m6[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5271[0m │ [1;36m0.7186[0m │ [1;36m0.5664[0m │ [1;36m0.7011[0m │ [1;36m0.6970[0m │ [1;36m0.7763[0m │ [1;36m0.6414[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+[2026-10-16 18:23:22] [INFO] rf-detr - Best EMA metric improved to 0.5274 (epoch 5)
+EPOCH_RESULT {"epoch": 6, "global_step": 44358, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1138.2001016959548, "total_elapsed_seconds": 6906.885989278555, "learning_rates": [4.3952742284760005e-06, 1.4208006057132244e-07, 1.7760007571415305e-07, 1.7760007571415305e-07, 2.220000946426913e-07, 2.220000946426913e-07, 2.775001183033641e-07, 2.775001183033641e-07, 3.4687514787920513e-07, 3.4687514787920513e-07, 4.335939348490064e-07, 4.335939348490064e-07, 5.419924185612581e-07, 5.419924185612581e-07, 6.774905232015724e-07, 6.774905232015724e-07, 8.468631540019656e-07, 8.468631540019656e-07, 1.058578942502457e-06, 1.058578942502457e-06, 1.323223678128071e-06, 1.323223678128071e-06, 1.6540295976600888e-06, 1.6540295976600888e-06, 2.067536997075111e-06, 2.067536997075111e-06, 3.23052655792986e-06, 3.0766919599332e-06], "metrics": {"loss": 4.917136192321777, "loss_cls": 0.6185744404792786, "loss_box": 0.028559625148773193, "loss_giou": 0.1794273406267166, "train/lr": 4.395469204609981e-06, "train/lr_min": 1.420863640078096e-07, "train/lr_max": 4.395469204609981e-06, "val/mAP_50_95": 0.5270755290985107, "val/mAP_50": 0.7185797095298767, "val/mAP_75": 0.5664023160934448, "val/mAR": 0.7011160850524902, "val/ema_mAP_50_95": 0.527376115322113, "val/ema_mAP_50": 0.7191432118415833, "val/ema_mAP_75": 0.5666369795799255, "val/ema_mAR": 0.7018268704414368, "val/F1": 0.6970222592353821, "val/precision": 0.7763311266899109, "val/recall": 0.6414312720298767, "train/loss_ce": 0.6449253559112549, "train/class_error": 4.30881929397583, "train/loss_bbox": 0.031687185168266296, "train/loss_giou": 0.19397413730621338, "train/cardinality_error": 49.402000427246094, "train/cardinality_error_0": 47.08562088012695, "train/cardinality_error_1": 49.10690689086914, "train/cardinality_error_enc": 47.7896842956543, "train/loss_ce_aux": 2.0159409046173096, "train/loss_bbox_aux": 0.10825277119874954, "train/loss_giou_aux": 0.622783362865448, "train/loss": 4.99407434463501}}
+EPOCH_STARTED epoch=7/10
+TRAIN_PROGRESS epoch=7 batches=500 global_step=44858 loss=5.370264530181885
+TRAIN_PROGRESS epoch=7 batches=1000 global_step=45358 loss=5.4903340339660645
+TRAIN_PROGRESS epoch=7 batches=1500 global_step=45858 loss=4.344688415527344
+TRAIN_PROGRESS epoch=7 batches=2000 global_step=46358 loss=4.8334879875183105
+TRAIN_PROGRESS epoch=7 batches=2500 global_step=46858 loss=4.792158126831055
+TRAIN_PROGRESS epoch=7 batches=3000 global_step=47358 loss=4.612557411193848
+TRAIN_PROGRESS epoch=7 batches=3500 global_step=47858 loss=4.967781066894531
+TRAIN_PROGRESS epoch=7 batches=4000 global_step=48358 loss=5.389379024505615
+TRAIN_PROGRESS epoch=7 batches=4500 global_step=48858 loss=5.377031326293945
+TRAIN_PROGRESS epoch=7 batches=5000 global_step=49358 loss=4.697284698486328
+TRAIN_PROGRESS epoch=7 batches=5500 global_step=49858 loss=5.464659690856934
+TRAIN_PROGRESS epoch=7 batches=6000 global_step=50358 loss=5.017129421234131
+TRAIN_PROGRESS epoch=7 batches=6500 global_step=50858 loss=4.8774003982543945
+TRAIN_PROGRESS epoch=7 batches=7000 global_step=51358 loss=5.630752086639404
+               Val [1m([0mEpoch [1;36m7[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5274[0m │ [1;36m0.7197[0m │ [1;36m0.5685[0m │ [1;36m0.7014[0m │ [1;36m0.6979[0m │ [1;36m0.7460[0m │ [1;36m0.6643[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_RESULT {"epoch": 7, "global_step": 51751, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1148.2371787242591, "total_elapsed_seconds": 8057.140996631235, "learning_rates": [3.0387066815988466e-06, 9.822814389666557e-08, 1.2278517987083196e-07, 1.2278517987083196e-07, 1.5348147483853993e-07, 1.5348147483853993e-07, 1.9185184354817492e-07, 1.9185184354817492e-07, 2.3981480443521864e-07, 2.3981480443521864e-07, 2.997685055440233e-07, 2.997685055440233e-07, 3.7471063193002916e-07, 3.7471063193002916e-07, 4.6838828991253624e-07, 4.6838828991253624e-07, 5.854853623906704e-07, 5.854853623906704e-07, 7.318567029883379e-07, 7.318567029883379e-07, 9.148208787354224e-07, 9.148208787354224e-07, 1.143526098419278e-06, 1.143526098419278e-06, 1.4294076230240975e-06, 1.4294076230240975e-06, 2.2334494109751517e-06, 2.1270946771191924e-06], "metrics": {"loss": 4.674087047576904, "loss_cls": 0.6206855177879333, "loss_box": 0.02361140213906765, "loss_giou": 0.19286784529685974, "train/lr": 3.038875092897797e-06, "train/lr_min": 9.823359192751013e-08, "train/lr_max": 3.038875092897797e-06, "val/mAP_50_95": 0.5274485945701599, "val/mAP_50": 0.7197351455688477, "val/mAP_75": 0.5685023069381714, "val/mAR": 0.7014487385749817, "val/ema_mAP_50_95": 0.5272907018661499, "val/ema_mAP_50": 0.7186282873153687, "val/ema_mAP_75": 0.5680323243141174, "val/ema_mAR": 0.7012627124786377, "val/F1": 0.6978704333305359, "val/precision": 0.7459745407104492, "val/recall": 0.6642592549324036, "train/loss_ce": 0.6430249214172363, "train/class_error": 4.260238170623779, "train/loss_bbox": 0.03162912279367447, "train/loss_giou": 0.19335247576236725, "train/cardinality_error": 49.52863311767578, "train/cardinality_error_0": 47.19953155517578, "train/cardinality_error_1": 49.26215744018555, "train/cardinality_error_enc": 47.94361877441406, "train/loss_ce_aux": 2.010633945465088, "train/loss_bbox_aux": 0.1078154444694519, "train/loss_giou_aux": 0.6204290986061096, "train/loss": 4.978444576263428}}
+EPOCH_STARTED epoch=8/10
+TRAIN_PROGRESS epoch=8 batches=500 global_step=52251 loss=5.057145118713379
+TRAIN_PROGRESS epoch=8 batches=1000 global_step=52751 loss=4.649470329284668
+TRAIN_PROGRESS epoch=8 batches=1500 global_step=53251 loss=5.353245735168457
+TRAIN_PROGRESS epoch=8 batches=2000 global_step=53751 loss=4.9931182861328125
+TRAIN_PROGRESS epoch=8 batches=2500 global_step=54251 loss=5.5940046310424805
+TRAIN_PROGRESS epoch=8 batches=3000 global_step=54751 loss=4.898752212524414
+TRAIN_PROGRESS epoch=8 batches=3500 global_step=55251 loss=5.17559289932251
+TRAIN_PROGRESS epoch=8 batches=4000 global_step=55751 loss=4.773571968078613
+TRAIN_PROGRESS epoch=8 batches=4500 global_step=56251 loss=4.737543106079102
+TRAIN_PROGRESS epoch=8 batches=5000 global_step=56751 loss=5.372131824493408
+TRAIN_PROGRESS epoch=8 batches=5500 global_step=57251 loss=5.159896373748779
+TRAIN_PROGRESS epoch=8 batches=6000 global_step=57751 loss=4.980215072631836
+TRAIN_PROGRESS epoch=8 batches=6500 global_step=58251 loss=4.455395221710205
+TRAIN_PROGRESS epoch=8 batches=7000 global_step=58751 loss=4.292278289794922
+               Val [1m([0mEpoch [1;36m8[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5264[0m │ [1;36m0.7184[0m │ [1;36m0.5663[0m │ [1;36m0.7005[0m │ [1;36m0.6961[0m │ [1;36m0.7199[0m │ [1;36m0.6797[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_RESULT {"epoch": 8, "global_step": 59144, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1154.707359623164, "total_elapsed_seconds": 9214.591069515795, "learning_rates": [1.948854693774276e-06, 6.299797886152921e-08, 7.874747357691151e-08, 7.874747357691151e-08, 9.843434197113938e-08, 9.843434197113938e-08, 1.2304292746392423e-07, 1.2304292746392423e-07, 1.5380365932990528e-07, 1.5380365932990528e-07, 1.922545741623816e-07, 1.922545741623816e-07, 2.40318217702977e-07, 2.40318217702977e-07, 3.0039777212872114e-07, 3.0039777212872114e-07, 3.7549721516090153e-07, 3.7549721516090153e-07, 4.6937151895112687e-07, 4.6937151895112687e-07, 5.867143986889086e-07, 5.867143986889086e-07, 7.333929983611356e-07, 7.333929983611356e-07, 9.167412479514197e-07, 9.167412479514197e-07, 1.4324081999240926e-06, 1.3641982856419932e-06], "metrics": {"loss": 4.39897346496582, "loss_cls": 0.5966755151748657, "loss_box": 0.024184994399547577, "loss_giou": 0.16747018694877625, "train/lr": 1.948978251675726e-06, "train/lr_min": 6.300197696873511e-08, "train/lr_max": 1.948978251675726e-06, "val/mAP_50_95": 0.5263833999633789, "val/mAP_50": 0.7184165716171265, "val/mAP_75": 0.5662949085235596, "val/mAR": 0.7005122303962708, "val/ema_mAP_50_95": 0.5267528891563416, "val/ema_mAP_50": 0.7186241745948792, "val/ema_mAP_75": 0.5675740838050842, "val/ema_mAR": 0.7013964056968689, "val/F1": 0.6960739493370056, "val/precision": 0.7198833227157593, "val/recall": 0.6797464489936829, "train/loss_ce": 0.6414535641670227, "train/class_error": 4.196596145629883, "train/loss_bbox": 0.03162147477269173, "train/loss_giou": 0.19245567917823792, "train/cardinality_error": 49.51353454589844, "train/cardinality_error_0": 47.2466926574707, "train/cardinality_error_1": 49.249916076660156, "train/cardinality_error_enc": 48.05912780761719, "train/loss_ce_aux": 2.005095958709717, "train/loss_bbox_aux": 0.10777808725833893, "train/loss_giou_aux": 0.6178338527679443, "train/loss": 4.964130401611328}}
+EPOCH_STARTED epoch=9/10
+TRAIN_PROGRESS epoch=9 batches=500 global_step=59644 loss=5.454617023468018
+TRAIN_PROGRESS epoch=9 batches=1000 global_step=60144 loss=4.941413879394531
+TRAIN_PROGRESS epoch=9 batches=1500 global_step=60644 loss=5.838243007659912
+TRAIN_PROGRESS epoch=9 batches=2000 global_step=61144 loss=4.549560546875
+TRAIN_PROGRESS epoch=9 batches=2500 global_step=61644 loss=5.052487373352051
+TRAIN_PROGRESS epoch=9 batches=3000 global_step=62144 loss=4.867495536804199
+TRAIN_PROGRESS epoch=9 batches=3500 global_step=62644 loss=4.899116039276123
+TRAIN_PROGRESS epoch=9 batches=4000 global_step=63144 loss=4.084066390991211
+TRAIN_PROGRESS epoch=9 batches=4500 global_step=63644 loss=5.327512741088867
+TRAIN_PROGRESS epoch=9 batches=5000 global_step=64144 loss=4.953963279724121
+TRAIN_PROGRESS epoch=9 batches=5500 global_step=64644 loss=4.593827247619629
+TRAIN_PROGRESS epoch=9 batches=6000 global_step=65144 loss=4.748791694641113
+TRAIN_PROGRESS epoch=9 batches=6500 global_step=65644 loss=4.492591381072998
+TRAIN_PROGRESS epoch=9 batches=7000 global_step=66144 loss=5.192007064819336
+               Val [1m([0mEpoch [1;36m9[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5265[0m │ [1;36m0.7192[0m │ [1;36m0.5663[0m │ [1;36m0.7009[0m │ [1;36m0.6981[0m │ [1;36m0.7680[0m │ [1;36m0.6485[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_RESULT {"epoch": 9, "global_step": 66537, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1162.0693694017828, "total_elapsed_seconds": 10379.404257494956, "learning_rates": [1.243818972481565e-06, 4.020724663890121e-08, 5.0259058298626514e-08, 5.0259058298626514e-08, 6.282382287328313e-08, 6.282382287328313e-08, 7.852977859160392e-08, 7.852977859160392e-08, 9.81622232395049e-08, 9.81622232395049e-08, 1.2270277904938112e-07, 1.2270277904938112e-07, 1.5337847381172642e-07, 1.5337847381172642e-07, 1.9172309226465795e-07, 1.9172309226465795e-07, 2.396538653308225e-07, 2.396538653308225e-07, 2.9956733166352806e-07, 2.9956733166352806e-07, 3.7445916457941005e-07, 3.7445916457941005e-07, 4.680739557242626e-07, 4.680739557242626e-07, 5.850924446553282e-07, 5.850924446553282e-07, 9.142069447739501e-07, 8.706732807370954e-07], "metrics": {"loss": 5.432979583740234, "loss_cls": 0.6613640189170837, "loss_box": 0.029989859089255333, "loss_giou": 0.2562817633152008, "train/lr": 1.2438842986739473e-06, "train/lr_min": 4.0209361173992875e-08, "train/lr_max": 1.2438842986739473e-06, "val/mAP_50_95": 0.5264936685562134, "val/mAP_50": 0.7191798090934753, "val/mAP_75": 0.5663109421730042, "val/mAR": 0.7009291648864746, "val/ema_mAP_50_95": 0.5267185568809509, "val/ema_mAP_50": 0.7190859913825989, "val/ema_mAP_75": 0.5665665864944458, "val/ema_mAR": 0.700568437576294, "val/F1": 0.698076605796814, "val/precision": 0.7680159211158752, "val/recall": 0.6485320329666138, "train/loss_ce": 0.6405912041664124, "train/class_error": 4.205193996429443, "train/loss_bbox": 0.03154216334223747, "train/loss_giou": 0.19291464984416962, "train/cardinality_error": 49.60889434814453, "train/cardinality_error_0": 47.41911315917969, "train/cardinality_error_1": 49.36715316772461, "train/cardinality_error_enc": 48.12467956542969, "train/loss_ce_aux": 2.002537727355957, "train/loss_bbox_aux": 0.10741645842790604, "train/loss_giou_aux": 0.618757426738739, "train/loss": 4.961276054382324}}
+EPOCH_STARTED epoch=10/10
+TRAIN_PROGRESS epoch=10 batches=500 global_step=67037 loss=5.4788312911987305
+TRAIN_PROGRESS epoch=10 batches=1000 global_step=67537 loss=5.172025680541992
+TRAIN_PROGRESS epoch=10 batches=1500 global_step=68037 loss=4.725671291351318
+TRAIN_PROGRESS epoch=10 batches=2000 global_step=68537 loss=4.288650035858154
+TRAIN_PROGRESS epoch=10 batches=2500 global_step=69037 loss=5.164741516113281
+TRAIN_PROGRESS epoch=10 batches=3000 global_step=69537 loss=4.805820465087891
+TRAIN_PROGRESS epoch=10 batches=3500 global_step=70037 loss=5.126002311706543
+TRAIN_PROGRESS epoch=10 batches=4000 global_step=70537 loss=4.8587141036987305
+TRAIN_PROGRESS epoch=10 batches=4500 global_step=71037 loss=4.973414421081543
+TRAIN_PROGRESS epoch=10 batches=5000 global_step=71537 loss=4.600020408630371
+TRAIN_PROGRESS epoch=10 batches=5500 global_step=72037 loss=5.475503921508789
+TRAIN_PROGRESS epoch=10 batches=6000 global_step=72537 loss=4.970636367797852
+TRAIN_PROGRESS epoch=10 batches=6500 global_step=73037 loss=4.908421516418457
+TRAIN_PROGRESS epoch=10 batches=7000 global_step=73537 loss=4.328985214233398
+              Val [1m([0mEpoch [1;36m10[0m/[1;36m10[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m100[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5274[0m │ [1;36m0.7195[0m │ [1;36m0.5673[0m │ [1;36m0.7012[0m │ [1;36m0.6980[0m │ [1;36m0.7451[0m │ [1;36m0.6654[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+EPOCH_RESULT {"epoch": 10, "global_step": 73930, "training_batches": 7393, "full_epoch": true, "loss_batches_checked": 7393, "all_observed_losses_finite": true, "epoch_seconds_before_checkpoint": 1160.4362831637263, "total_elapsed_seconds": 11543.443072941154, "learning_rates": [1.0000000000000002e-06, 3.232564185661442e-08, 4.0407052320768025e-08, 4.0407052320768025e-08, 5.050881540096002e-08, 5.050881540096002e-08, 6.313601925120003e-08, 6.313601925120003e-08, 7.892002406400004e-08, 7.892002406400004e-08, 9.865003008000004e-08, 9.865003008000004e-08, 1.2331253760000008e-07, 1.2331253760000008e-07, 1.5414067200000003e-07, 1.5414067200000003e-07, 1.9267584000000008e-07, 1.9267584000000008e-07, 2.408448000000001e-07, 2.408448000000001e-07, 3.0105600000000007e-07, 3.0105600000000007e-07, 3.763200000000001e-07, 3.763200000000001e-07, 4.7040000000000014e-07, 4.7040000000000014e-07, 7.35e-07, 7.000000000000001e-07], "metrics": {"loss": 5.102652549743652, "loss_cls": 0.6324788331985474, "loss_box": 0.033790215849876404, "loss_giou": 0.19950272142887115, "train/lr": 9.999999974752427e-07, "train/lr_min": 3.232564083077705e-08, "train/lr_max": 9.999999974752427e-07, "val/mAP_50_95": 0.5274365544319153, "val/mAP_50": 0.7194545269012451, "val/mAP_75": 0.5673170685768127, "val/mAR": 0.7011715173721313, "val/ema_mAP_50_95": 0.5268686413764954, "val/ema_mAP_50": 0.718636155128479, "val/ema_mAP_75": 0.5665093064308167, "val/ema_mAR": 0.7021623849868774, "val/F1": 0.6979626417160034, "val/precision": 0.7450504302978516, "val/recall": 0.6654253602027893, "train/loss_ce": 0.6401806473731995, "train/class_error": 4.185682773590088, "train/loss_bbox": 0.031540367752313614, "train/loss_giou": 0.19266310334205627, "train/cardinality_error": 49.7133674621582, "train/cardinality_error_0": 47.51164245605469, "train/cardinality_error_1": 49.48108673095703, "train/cardinality_error_enc": 48.24983215332031, "train/loss_ce_aux": 2.001178026199341, "train/loss_bbox_aux": 0.1074160486459732, "train/loss_giou_aux": 0.6181957721710205, "train/loss": 4.957846641540527}}
+`Trainer.fit` stopped: `max_epochs=10` reached.
+[2026-10-16 19:40:43] [INFO] rf-detr - Best total checkpoint saved from regular (regular=0.5277, ema=0.5274)
+BASELINE_10EPOCH_COMPLETED
+TOTAL_SECONDS 11547.91

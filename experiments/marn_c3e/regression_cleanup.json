@@ -1,0 +1,14 @@
+[
+  {
+    "file": "c3b_epoch_boundary.ckpt",
+    "bytes": 516672971
+  },
+  {
+    "file": "ema_test.pth",
+    "bytes": 129295941
+  },
+  {
+    "file": "regular_test.pth",
+    "bytes": 129295941
+  }
+]

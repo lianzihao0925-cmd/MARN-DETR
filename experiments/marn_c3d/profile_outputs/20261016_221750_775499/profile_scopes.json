@@ -1,0 +1,39 @@
+{
+  "profiled_batches": 5,
+  "scoped_batches": 10,
+  "scopes": {
+    "MARN.reader": {
+      "calls": 10,
+      "total_seconds": 0.023875892162322998,
+      "mean_ms": 2.3875892162323
+    },
+    "MARN.refiner": {
+      "calls": 10,
+      "total_seconds": 0.009238362312316895,
+      "mean_ms": 0.9238362312316895
+    },
+    "MARN.adapter_forward_inclusive": {
+      "calls": 10,
+      "total_seconds": 0.05989769846200943,
+      "mean_ms": 5.989769846200943
+    },
+    "MARN.observe": {
+      "calls": 10,
+      "total_seconds": 0.2714785300195217,
+      "mean_ms": 27.14785300195217
+    },
+    "MARN.commit": {
+      "calls": 10,
+      "total_seconds": 0.7159289978444576,
+      "mean_ms": 71.59289978444576
+    },
+    "MARN.ema": {
+      "calls": 10,
+      "total_seconds": 0.22886253520846367,
+      "mean_ms": 22.886253520846367
+    }
+  },
+  "profile_finished": true,
+  "hooks_restored": true,
+  "interpretation": "Inclusive host wall times; nested scopes overlap; instrumented speed is not acceptance."
+}

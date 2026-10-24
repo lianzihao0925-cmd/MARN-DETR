@@ -1,0 +1,6 @@
+{
+  "original_sha256": "ef1ef24edcc394bfb6798cbbc66c30400074128434e7c10b6b5803a0cde1391c",
+  "patched_sha256": "ab5d6d955f2eb845528749be973a73ce2769dfd8908610b8c76eefcb3a7f0474",
+  "new_file": "/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/marn/lifecycle.py",
+  "new_file_sha256": "4edfdf213e8d7af71d1a11306f0f5443e87f73986689beddd18e799c75cd5dea"
+}

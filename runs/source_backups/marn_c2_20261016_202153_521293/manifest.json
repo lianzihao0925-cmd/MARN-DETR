@@ -1,0 +1,14 @@
+{
+  "/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/models/transformer.py": {
+    "before_sha256": "279c0af7e999ff4ce58845c94c87bd9211356d62cb1eeaeb626fe2680fbb8f4d",
+    "after_sha256": "18705e4e250bf421b0eab1e56a9088c3879e6d7ad4d476c34f78e018facdf031"
+  },
+  "/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/models/lwdetr.py": {
+    "before_sha256": "43f346535faa4cb849d914d274f8c37edfcd7bbaec24c57e6ca78a0c90531b4c",
+    "after_sha256": "ce4a487562e21e0c6d4d029bd676c929ad2e9df4b98ac28d8df44cea9fd396a3"
+  },
+  "/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/models/criterion.py": {
+    "before_sha256": "0ac40a4c4a5c7250880fec86b7f15ad9202313531c7cc422d8fb765db30543ce",
+    "after_sha256": "4a2fb7a8e37cfc9d16a22d280506f885a2d992681211bd35535a16d64bed2de6"
+  }
+}

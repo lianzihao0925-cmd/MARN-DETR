@@ -1,0 +1,69 @@
+{
+  "passed": true,
+  "commits": [
+    {
+      "step": 1,
+      "microbatches": 2,
+      "unique_objects": 10,
+      "matches": 260,
+      "invalid": 0,
+      "low_confidence": 0,
+      "low_iou": 0,
+      "duplicates": 250,
+      "eligible": 260,
+      "fill": 10,
+      "update": 0,
+      "replace": 0,
+      "valid_slots": 10,
+      "covered_classes": 4
+    },
+    {
+      "step": 2,
+      "microbatches": 2,
+      "unique_objects": 10,
+      "matches": 260,
+      "invalid": 0,
+      "low_confidence": 14,
+      "low_iou": 0,
+      "duplicates": 236,
+      "eligible": 246,
+      "fill": 0,
+      "update": 10,
+      "replace": 0,
+      "valid_slots": 10,
+      "covered_classes": 4
+    },
+    {
+      "step": 3,
+      "microbatches": 2,
+      "unique_objects": 10,
+      "matches": 260,
+      "invalid": 0,
+      "low_confidence": 4,
+      "low_iou": 0,
+      "duplicates": 246,
+      "eligible": 256,
+      "fill": 0,
+      "update": 10,
+      "replace": 0,
+      "valid_slots": 10,
+      "covered_classes": 4
+    },
+    {
+      "step": 4,
+      "microbatches": 2,
+      "unique_objects": 10,
+      "matches": 260,
+      "invalid": 0,
+      "low_confidence": 0,
+      "low_iou": 0,
+      "duplicates": 250,
+      "eligible": 260,
+      "fill": 0,
+      "update": 10,
+      "replace": 0,
+      "valid_slots": 10,
+      "covered_classes": 4
+    }
+  ]
+}

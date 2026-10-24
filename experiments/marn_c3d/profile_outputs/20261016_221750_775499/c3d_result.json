@@ -1,0 +1,51 @@
+{
+  "measurements_completed": true,
+  "stage": "complete",
+  "runs": [
+    {
+      "mode": "marn",
+      "repetition": 1,
+      "warmup_batches": 10,
+      "measured_batches": 10,
+      "images": 160,
+      "seconds": 30.452682092785835,
+      "images_per_second": 5.254052812573235,
+      "all_losses_finite": true,
+      "optimizer_fused": true,
+      "peak_allocated_GiB": 8.867050170898438,
+      "peak_reserved_GiB": 10.1640625,
+      "bank_at_measurement_start": {
+        "valid_slots": 241,
+        "total_slots": 320,
+        "covered_classes": 70,
+        "committed_step": 10
+      },
+      "bank_at_measurement_end": {
+        "valid_slots": 293,
+        "total_slots": 320,
+        "covered_classes": 77,
+        "committed_step": 20
+      },
+      "accepted_queries": 62400,
+      "selected_queries": 62400,
+      "unique_object_writes": 860,
+      "seed": 42,
+      "target_sha256": "3b49375cd91af2c1744c4363ebd05aff2c7249368a9bc5099ecbaa48e175e24d",
+      "first_two_warmup_images_sha256": "6865255e0baa800435310587468936b20e6e541c3b58a67bf06b986aec513651"
+    }
+  ],
+  "scope": "training only: data loading/transfer, forward, matching/loss, backward, optimizer, bank, EMA",
+  "environment": {
+    "python": "3.11.17 (main, Oct  1 2026, 20:17:42) [GCC 14.3.0]",
+    "torch": "2.7.1+cu128",
+    "lightning": "2.6.6",
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "total_gpu_GiB": 31.356689453125
+  },
+  "summary": {
+    "diagnostic_only": true,
+    "throughput_acceptance": false
+  },
+  "total_wall_seconds": 57.551754012703896
+}

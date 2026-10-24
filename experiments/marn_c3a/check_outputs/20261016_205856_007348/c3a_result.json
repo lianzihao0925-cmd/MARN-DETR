@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "stage": "complete",
+  "scope": "CPU data path only; no training or EMA test",
+  "albumentations_crop": "not installed; active pipeline still tested below",
+  "synthetic_identity": "passed",
+  "baseline_config_sha256": "7b93ad724fca1a474e6005877908b1ed46435f606aefb0b3abf44b0f21051569",
+  "resource_overrides": {
+    "num_workers": 4,
+    "persistent_workers": false,
+    "pin_memory": false,
+    "prefetch_factor": 2,
+    "accelerator": "cpu",
+    "devices": 1,
+    "output_dir": "/root/autodl-tmp/project_marn-detr/experiments/marn_c3a/check_outputs/20261016_205856_007348"
+  },
+  "pack_targets": true,
+  "transform_repr": "<rfdetr.datasets._torchvision.Compose object at 0x7feef9058f10>",
+  "paired_augmentation": {
+    "train_pairs": 62,
+    "val_pairs": 8,
+    "objects_checked": 321
+  },
+  "known_collated_target_type": "PackedTargets",
+  "uniform_collated_target_type": "PackedTargets",
+  "empty_collated_target_type": "PackedTargets",
+  "loader": {
+    "images": 96,
+    "objects_checked": 616,
+    "workers": 4,
+    "batch_size": 16,
+    "collated_target_types": [
+      "PackedTargets"
+    ]
+  },
+  "cuda_initialized": false,
+  "elapsed_seconds": 23.321738712489605
+}

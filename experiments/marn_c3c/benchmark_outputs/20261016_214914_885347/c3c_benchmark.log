@@ -1,0 +1,113 @@
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+Seed set to 42
+[2026-10-16 21:49:20] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=12.87s)
+creating index...
+index created!
+[2026-10-16 21:49:33] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.35s)
+creating index...
+index created!
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:129: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  'validate_assignment': lambda model, name, val: model.__pydantic_validator__.validate_assignment(model, name, val),  # pyright: ignore[reportAssignmentType]
+Seed set to 42
+[2026-10-16 21:49:34] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:49:34] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:49:35] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+C3C_RUN_STARTED mode=baseline repetition=1 seed=42
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 42
+C3C_WARMUP_COMPLETED mode=baseline repetition=1
+C3C_RUN_COMPLETED {"mode": "baseline", "repetition": 1, "warmup_batches": 10, "measured_batches": 50, "images": 800, "seconds": 7.323541030287743, "images_per_second": 109.23677449084599, "all_losses_finite": true, "optimizer_fused": true, "peak_allocated_GiB": 8.77770471572876, "peak_reserved_GiB": 10.16015625}
+`Trainer.fit` stopped: `max_epochs=1` reached.
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:129: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  'validate_assignment': lambda model, name, val: model.__pydantic_validator__.validate_assignment(model, name, val),  # pyright: ignore[reportAssignmentType]
+Seed set to 42
+[2026-10-16 21:49:50] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:49:50] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:49:51] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+C3C_RUN_STARTED mode=marn repetition=1 seed=42
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 42
+C3C_WARMUP_COMPLETED mode=marn repetition=1
+C3C_RUN_COMPLETED {"mode": "marn", "repetition": 1, "warmup_batches": 10, "measured_batches": 50, "images": 800, "seconds": 10.655508410185575, "images_per_second": 75.07853864910678, "all_losses_finite": true, "optimizer_fused": true, "peak_allocated_GiB": 8.866164207458496, "peak_reserved_GiB": 10.1640625, "bank_at_measurement_start": {"valid_slots": 243, "total_slots": 320, "covered_classes": 70, "committed_step": 10}, "bank_at_measurement_end": {"valid_slots": 313, "total_slots": 320, "covered_classes": 79, "committed_step": 60}, "accepted_queries": 312000, "selected_queries": 312000, "unique_object_writes": 3963}
+`Trainer.fit` stopped: `max_epochs=1` reached.
+C3C_PAIR_INPUTS_OK repetition=1
+Seed set to 43
+[2026-10-16 21:50:08] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:08] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:09] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+C3C_RUN_STARTED mode=marn repetition=2 seed=43
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 43
+C3C_WARMUP_COMPLETED mode=marn repetition=2
+C3C_RUN_COMPLETED {"mode": "marn", "repetition": 2, "warmup_batches": 10, "measured_batches": 50, "images": 800, "seconds": 10.615661386400461, "images_per_second": 75.360353997808, "all_losses_finite": true, "optimizer_fused": true, "peak_allocated_GiB": 8.866299152374268, "peak_reserved_GiB": 10.1640625, "bank_at_measurement_start": {"valid_slots": 252, "total_slots": 320, "covered_classes": 73, "committed_step": 10}, "bank_at_measurement_end": {"valid_slots": 312, "total_slots": 320, "covered_classes": 78, "committed_step": 60}, "accepted_queries": 311999, "selected_queries": 312000, "unique_object_writes": 4322}
+`Trainer.fit` stopped: `max_epochs=1` reached.
+Seed set to 43
+[2026-10-16 21:50:27] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:27] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:28] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+C3C_RUN_STARTED mode=baseline repetition=2 seed=43
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 43
+C3C_WARMUP_COMPLETED mode=baseline repetition=2
+C3C_RUN_COMPLETED {"mode": "baseline", "repetition": 2, "warmup_batches": 10, "measured_batches": 50, "images": 800, "seconds": 7.240454290062189, "images_per_second": 110.49030460671946, "all_losses_finite": true, "optimizer_fused": true, "peak_allocated_GiB": 8.778013229370117, "peak_reserved_GiB": 10.16015625}
+`Trainer.fit` stopped: `max_epochs=1` reached.
+C3C_PAIR_INPUTS_OK repetition=2
+Seed set to 44
+[2026-10-16 21:50:41] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:41] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:42] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+C3C_RUN_STARTED mode=baseline repetition=3 seed=44
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 44
+C3C_WARMUP_COMPLETED mode=baseline repetition=3
+C3C_RUN_COMPLETED {"mode": "baseline", "repetition": 3, "warmup_batches": 10, "measured_batches": 50, "images": 800, "seconds": 7.44450493529439, "images_per_second": 107.46181337152467, "all_losses_finite": true, "optimizer_fused": true, "peak_allocated_GiB": 8.777938842773438, "peak_reserved_GiB": 10.16015625}
+`Trainer.fit` stopped: `max_epochs=1` reached.
+Seed set to 44
+[2026-10-16 21:50:56] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:56] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 21:50:57] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+C3C_RUN_STARTED mode=marn repetition=3 seed=44
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+Seed set to 44
+C3C_WARMUP_COMPLETED mode=marn repetition=3
+C3C_RUN_COMPLETED {"mode": "marn", "repetition": 3, "warmup_batches": 10, "measured_batches": 50, "images": 800, "seconds": 10.402331180870533, "images_per_second": 76.9058383250831, "all_losses_finite": true, "optimizer_fused": true, "peak_allocated_GiB": 8.866137504577637, "peak_reserved_GiB": 10.1640625, "bank_at_measurement_start": {"valid_slots": 257, "total_slots": 320, "covered_classes": 74, "committed_step": 10}, "bank_at_measurement_end": {"valid_slots": 312, "total_slots": 320, "covered_classes": 80, "committed_step": 60}, "accepted_queries": 312000, "selected_queries": 312000, "unique_object_writes": 4003}
+`Trainer.fit` stopped: `max_epochs=1` reached.
+C3C_PAIR_INPUTS_OK repetition=3
+C3C_THROUGHPUT_COMPLETED {"baseline": {"repetitions": 3, "images_per_second": [109.23677449084599, 110.49030460671946, 107.46181337152467], "mean_images_per_second": 109.06296415636338, "sample_standard_deviation": 1.5217086825975064, "target_images_per_second": 100.0, "mean_meets_target": true, "peak_allocated_GiB": 8.778013229370117, "training_only_epoch_minutes_estimate": 18.076408264864124}, "marn": {"repetitions": 3, "images_per_second": [75.07853864910678, 75.360353997808, 76.9058383250831], "mean_images_per_second": 75.78157699066595, "sample_standard_deviation": 0.9837823101377408, "target_images_per_second": 80.0, "mean_meets_target": false, "peak_allocated_GiB": 8.866299152374268, "training_only_epoch_minutes_estimate": 26.015117987179035}, "marn_speed_fraction_of_baseline": 0.6948424479094301}

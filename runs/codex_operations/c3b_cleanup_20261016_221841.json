@@ -1,0 +1,17 @@
+[
+  {
+    "file": "/root/autodl-tmp/project_marn-detr/experiments/marn_c3b/check_outputs/20261016_213451_158182/c3b_epoch_boundary.ckpt",
+    "bytes_freed": 0,
+    "deleted": false
+  },
+  {
+    "file": "/root/autodl-tmp/project_marn-detr/experiments/marn_c3b/check_outputs/20261016_213451_158182/regular_test.pth",
+    "bytes_freed": 0,
+    "deleted": false
+  },
+  {
+    "file": "/root/autodl-tmp/project_marn-detr/experiments/marn_c3b/check_outputs/20261016_213451_158182/ema_test.pth",
+    "bytes_freed": 0,
+    "deleted": false
+  }
+]

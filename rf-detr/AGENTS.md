@@ -1,0 +1,381 @@
+# RF-DETR - Agent Instructions
+
+This file provides detailed technical context for AI coding agents working with RF-DETR.
+
+**Canonical Sources:**
+
+- **Contribution Guidelines:** [CONTRIBUTING.md](.github/CONTRIBUTING.md) - The authoritative source for all contribution practices
+- **Human Documentation:** [README.md](README.md) - Project overview and usage
+- **Copilot Instructions:** [.github/copilot-instructions.md](.github/copilot-instructions.md) - GitHub Copilot-specific guidance
+
+This document supplements the contribution guidelines with detailed technical information for automated tooling.
+
+## Agent Responsibilities
+
+As an AI agent contributing to RF-DETR, you are responsible for:
+
+1. **Following test-driven development practices**
+
+    - Write failing tests first for bug fixes
+    - Write comprehensive tests for new features
+    - Ensure final PR commit has all tests passing
+
+2. **Adhering to code quality standards**
+
+    - Run `pre-commit run --all-files` before every commit
+    - Follow type hint and docstring requirements
+    - Prefer direct project imports; conventional third-party aliases are allowed
+
+3. **Maintaining agentic documentation**
+
+    - Update `AGENTS.md` when architecture patterns or technical conventions change
+    - Update `.github/copilot-instructions.md` when high-level guidance changes
+    - Update `.github/CONTRIBUTING.md` when human workflow is affected
+    - Apply updates after receiving major feedback in PR reviews
+
+4. **Consulting maintainers before major changes**
+
+    - Open an issue before adding new models or significant features
+    - Wait for approval on approach before implementing
+
+5. **Writing secure, minimal code**
+
+    - Avoid over-engineering and unnecessary abstractions
+    - Write secure code (prevent injection vulnerabilities)
+    - Follow existing patterns in the codebase
+
+> [!NOTE]
+>
+> Keeping documentation current ensures consistency across agent contributions and reduces repeated feedback on the same issues.
+
+## Build & Development Environment
+
+> [!NOTE]
+>
+> **Canonical Reference:** See [Development Environment Setup](.github/CONTRIBUTING.md#development-environment-setup) in CONTRIBUTING.md for complete setup instructions.
+
+### Setup
+
+```bash
+# Install uv (if not already installed)
+pip install uv
+
+# Full development environment (always use this)
+uv sync --all-groups
+```
+
+**Prerequisites:** Python >=3.10 (tested on 3.10-3.14)
+
+### Dependency Information
+
+See `pyproject.toml` for complete dependency specifications:
+
+- **Core:** PyTorch, torchvision, transformers, supervision, pydantic, pyDeprecate
+- **Optional:** `[data]` (WebDataset streaming reader), `[train]` (minimal training loop dependencies, including the COCO evaluation backends selectable via `TrainConfig.eval_backend`), `[augment]` (custom Albumentations CPU augmentations and Kornia GPU augmentations), `[lora]` (LoRA fine-tuning), `[plus]` (Plus models), `[onnx]` (ONNX export), `[loggers]` (tensorboard, wandb, mlflow, clearml)
+- **Development:** `tests`, `docs`, `build` groups
+
+**Important version constraints:**
+
+- PyTorch: >=2.2.0, \<3.0.0
+- Transformers: >=5.0.0, \<6.0.0
+
+## Testing
+
+> [!NOTE]
+>
+> **Canonical Reference:** See [Test-Driven Development](.github/CONTRIBUTING.md#test-driven-development) in CONTRIBUTING.md for complete guidelines.
+>
+> **CI Workflows (Source of Truth):** See `.github/workflows/ci-tests-cpu.yml` and `.github/workflows/ci-tests-gpu.yml` for exact test commands used in CI.
+
+### Commands
+
+```bash
+# CPU tests (default for local development; mirrors CI)
+uv run --no-sync pytest src/ tests/ scripts/ -n 1 -m "not gpu" --ignore=tests/run_smoke_all_models.py --ignore=tests/legacy/test_checkpoint_compat.py --cov=rfdetr --cov-report=xml --timeout=240 --durations=50
+
+# GPU tests (requires GPU; mirrors CI)
+uv run --no-sync pytest tests/ -m gpu --ignore=tests/legacy/test_checkpoint_compat.py -n 2 --reruns 1 --only-rerun "OutOfMemoryError" --cov=rfdetr --cov-report=xml --timeout=600 --durations=20
+
+# Pre-commit checks (ALWAYS run before committing)
+pre-commit run --all-files
+```
+
+### Testing Principles
+
+> [!IMPORTANT]
+>
+> **Testing Requirements:**
+>
+> - ⚠️ **During development:** Tests may fail as you work through TDD cycle
+> - ✅ **Before opening PR:** Final commit MUST have all tests passing
+> - ✅ **Before each commit:** Run `pre-commit run --all-files`
+
+**Test-Driven Development:**
+
+1. **Bug fixes:** Write failing test → Fix code → Verify all tests pass
+2. **New features:** Write comprehensive tests → Implement feature → Refactor
+
+**Test Organization:**
+
+- Group related tests in classes
+- Use `pytest.param(..., id="name")` only for a function, object, compound setup passed as one case, a per-case mark, or when the raw value would produce an unclear/empty ID (e.g., `""`); use bare string/number/boolean/`None` values otherwise, and do not maintain a parallel `ids` list
+- Mark GPU/heavy tests with `@pytest.mark.gpu`
+- Never use `pytest.importorskip`, and do not use `pytest.skip()` for missing optional dependencies. Gate optional-dependency tests with a named `pytest.mark.skipif` decorator built from an `_IS_<PACKAGE>_INSTALLED` flag, applied to the test, the class, or a `pytest.param(..., marks=...)` case (a module-wide `pytestmark = <named skipif>` is fine when every test in the module needs the package). Import the optional package locally inside the test or helper, which is the optional-dependency boundary the Imports rule allows, and gate helper doctests with `__doctest_requires__`
+- Take the flag from `rfdetr.export.imports` (export formats) or `rfdetr.utilities.imports` (everything else); add a new flag to the matching module and never re-probe with `find_spec` in a test file. The one exception is a format whose exporter package guards its own import (`_IS_COREMLTOOLS_AVAILABLE`, `_IS_EXECUTORCH_AVAILABLE`, `_IS_ONNX2TF_AVAILABLE`, `_IS_POLYGRAPHY_AVAILABLE`): gate its tests on that flag, which skips a broken install instead of failing it. A flag proves a package is installed, not that it imports, so a broken install errors instead of skipping. Reserve in-body `pytest.skip()` for conditions that can only be discovered at runtime - see [CONTRIBUTING.md](.github/CONTRIBUTING.md#test-organization)
+- Avoid multiple validation cases in a single test - see [CONTRIBUTING.md](.github/CONTRIBUTING.md#avoid-multiple-validation-cases-in-a-single-test) for details
+- Fixtures return ready-to-use concrete state or a cohesive tuple of related state. Do not return a callable factory unless fixture-managed lifecycle is required; use an ordinary helper function for configurable construction.
+- Keep fixture dependencies minimal, unpack only the values a test needs, and avoid aliases or wrappers that merely rename or forward an object without adding meaning.
+
+**CI Information:** See [CI Testing](.github/CONTRIBUTING.md#ci-testing) in CONTRIBUTING.md for details on OS/Python version matrix and workflow configurations.
+
+## Code Quality & Linting
+
+> [!NOTE]
+>
+> **Canonical Reference:** See [Code Quality and Linting](.github/CONTRIBUTING.md#code-quality-and-linting) in CONTRIBUTING.md for setup and details.
+
+### Command
+
+```bash
+# Always run full pre-commit (not individual tools)
+pre-commit run --all-files
+```
+
+> [!TIP]
+>
+> Pre-commit hooks will auto-format many issues. Review changes and re-stage files.
+
+**Configuration Files:**
+
+- `.pre-commit-config.yaml` - Pre-commit hooks (ruff, mdformat, prettier, codespell, license headers)
+- `pyproject.toml` - Ruff linting rules (`[tool.ruff]` section)
+
+**Abstraction Discipline:**
+
+- Introduce an abstraction only when it reduces cognitive load and the number of concepts a reader must follow. Extract stable repeated behavior or irrelevant construction mechanics while keeping behavior-defining inputs and outcomes explicit at call sites.
+- Design an extracted helper for the complete related behavior already present, including relevant edge cases, and place it in the narrowest scope shared by its consumers. Prefer small visible duplication over a helper, wrapper, alias, or layer that adds indirection without semantic value.
+
+**License Header (required for all Python files):**
+
+```python
+# ------------------------------------------------------------------------
+# RF-DETR
+# Copyright (c) 2025 Roboflow. All Rights Reserved.
+# Licensed under the Apache License, Version 2.0 [see LICENSE for details]
+# ------------------------------------------------------------------------
+```
+
+## Documentation
+
+### Building Docs
+
+```bash
+# Full install (matches CI — required for XLarge/2XLarge model pages)
+uv pip install -e ".[plus]" --group docs
+
+# Serve locally (live reload)
+uv run mkdocs serve
+
+# Build static site
+uv run mkdocs build
+```
+
+**Documentation Structure:**
+
+- **Source:** `docs/` directory (Markdown)
+- **Config:** `mkdocs.yaml` (uses custom YAML tags: `!!python/name`)
+- **Deployment:** GitHub Actions publishes to GitHub Pages
+
+**Note:** `mkdocs.yaml` is checked by the `check-yaml` pre-commit hook with `--unsafe` so custom YAML tags such as `!!python/name` are accepted.
+
+## Package Building
+
+```bash
+# Install build dependencies
+uv sync --group build
+
+# Build distributions
+uv build
+
+# Validate build
+uv run twine check --strict dist/*
+```
+
+**Build outputs:**
+
+- Source distribution: `dist/rfdetr-*.tar.gz`
+- Wheel: `dist/rfdetr-*.whl`
+
+## Project Structure
+
+> [!NOTE]
+>
+> **Canonical Reference:** See [Project Structure](.github/CONTRIBUTING.md#project-structure) in CONTRIBUTING.md for complete project organization, directory descriptions, and configuration files.
+>
+> **Quick summary:** `src/rfdetr/` (source code), `tests/` (test suite), `docs/` (documentation), `.github/` (CI/CD), `pyproject.toml` (dependencies and config).
+>
+> Internal package organization within `src/rfdetr/` is subject to change as this is an active research and development project.
+
+## Architecture & Conventions
+
+### Key Patterns
+
+**Augmentations:**
+
+- **Training** uses torchvision-native transforms **unless Albumentations is installed** — `augmentation_backend="cpu"` (the default) then auto-selects Albumentations and injects the default `AUG_CONFIG`, even when `aug_config=None`. Identical training code therefore resolves differently across environments; pass `augmentation_backend="torchvision"` to pin the torchvision pipeline regardless of what is installed. This backend selection only reaches the dataset builders: `_route_transforms` chooses Albumentations only for `image_set == "train"`, so validation always stays on torchvision, and prediction (`src/rfdetr/detr.py`) and export (`src/rfdetr/export/prepare.py`) call torchvision preprocessing directly — do not change inference/export behavior based on the training backend.
+- Custom non-empty `aug_config` values on the CPU path use Albumentations and require `rfdetr[augment]`.
+- `augmentation_backend="auto"` resolves to Kornia when CUDA and Kornia are available, falling back to CPU otherwise; `augmentation_backend="gpu"` pins Kornia and requires `rfdetr[augment]`.
+
+**Model Architecture:**
+
+- RFDETR wrappers: `self.model` is the model context returned by `get_model()`
+- Underlying PyTorch module: `self.model.model`
+- Segmentation models return `pred_masks` as `torch.Tensor` or dict with keys `['spatial_features', 'query_features', 'bias']`
+- Opt-in CUDA graph training is routed by `RFDETRModelModule` through the plain-object `CudaGraphTrainingRunner`; never replace the registered `self.model`, because optimizer, EMA, and checkpoint keys must keep their existing parameter ownership. The graph path is single-GPU detection only; BF16 captures per execution signature, and capture failures are fatal (never retry eagerly in the damaged CUDA context). With `compile=True` as well, replay is delegated to Inductor cudagraph trees (`triton.cudagraphs` compile option + `torch.compiler.cudagraph_mark_step_begin()` per `training_step`); `CudaGraphTrainingRunner` never wraps the `OptimizedModule`.
+- With `amp_dtype="fp8"`, `cuda_graphs=True`, and `compile=False`, pass the active Lightning precision-plugin recipe to the runner's optional Transformer Engine capture backend. Import the CUDA-only dependency lazily, require the FP8-aware API including cloned returned gradients, and keep one fixed execution signature with no accumulation and `square_resize_div_64=True`. Multi-scale, aspect-ratio resize, random-resize padding, distributed, segmentation/keypoints and gradient-checkpointing combinations stay eager with a warning. All three FP8/compile/graphs flags stay compile-only; do not nest capture runtimes. GPU numerical-parity coverage must accompany scope expansion.
+
+**Model Export:**
+
+- Each format is an `Exporter` subclass in `src/rfdetr/export/_<format>/exporter.py`, built from its own frozen config dataclass defined in the same module. `RFDETR.export()` is a facade — signature and return value are the public surface; everything below it is internal.
+- `src/rfdetr/export/base.py` names no format. It holds `ExportConfig`, `Exporter` and format-independent helpers only; per-format configs and their `RFDETR.export()` keyword mapping (`setting_names`) live with the exporter that reads them.
+- `src/rfdetr/export/registry.py` is data: format name → exporter dotted path, plus the facts needed *before* the heavy optional dependency is imported (`label`, `pip_extra`, `supports_dynamic_batch`, `dynamic_batch_reason`). Those mirror the exporter's class attributes; `tests/export/test_registry.py` is the only thing enforcing that.
+- `src/rfdetr/export/prepare.py` does the format-independent graph work once and returns an `ExportGraph`. Never duplicate it into a format.
+- A format that needs another deformable-attention sampler swaps `MSDeformAttn.grid_sample` on the modules of the model it converts, through a context manager in its own package (`pixel_row_sampling` in `src/rfdetr/export/_litert/sampling.py`), never on the class or the live model: `RFDETR.export()` converts a copy, and the class default serves every other caller.
+- Refuse a bad request before the forward pass: config values in `_check_capabilities` (config only), keywords that are derived, not stored, or hidden by a config default in `_format_settings`, missing packages in a `check_dependencies` override (called by `RFDETR.export` and `Exporter.__call__`, never by the constructor or the format itself), and what a setting needs of the installed packages or the host (a separate runtime library, a GPU recent enough to build on) in a `check_environment` override, which runs right after it at the same two places (a public entry point that bypasses `__call__`, such as TensorRT's `build_engine`, calls it itself). Only refusals that need the prepared graph go in `_convert`, first.
+- Static INT8 lives in the format's own `quantize.py` (`_onnx/`, `_openvino/`, `_tensorrt/`), never in its exporter: the exporter validates the request and calls one function. `src/rfdetr/export/_runtime/calibration.py` turns `calibration_data` into preprocessed batches for every format and must stay free of format-specific dependencies — it is what lets ONNX, OpenVINO and TensorRT share one definition of "representative data" without importing each other's runtime. `quantization="int8"` means *static* for these three formats (calibration data required, refused when absent) and *dynamic-range* for TFLite (calibration data genuinely unused); do not unify the keyword's meaning across them.
+- For ONNX and OpenVINO, quantize `MatMul`/`Gemm` only, and keep attention-score multiplies, detection heads and quantized-op outputs in float. Any change to that op selection needs a COCO measurement, not a plausibility argument: run the INT8 and COCO val2017 accuracy sections of [docs/cookbooks/export-cpu.ipynb](docs/cookbooks/export-cpu.ipynb), which score the INT8 artifacts with a seeded subset, a calibration set held out of it, and recorded ONNX Runtime / NNCF versions, and compare against the fp32 rows.
+- An engine that carries host code (a TensorRT 11 version-compatible engine) loads only through an explicit `engine_host_code_allowed=True` opt-in on `TRTInference` and `rfdetr.export.benchmark`, never by default: running host code from a file is a trust decision.
+- Adding a format: config + exporter class in its own package, one registry entry, one `pyproject.toml` extra, tests. Never an edit to `base.py`. Full recipe: [docs/exports/blueprint.md](docs/exports/blueprint.md).
+- TensorRT INT8 placement (`src/rfdetr/export/_tensorrt/quantize.py`) encodes measurements and two TensorRT bugs, not a generic recipe: an MLP's `fc1` is quantized only together with its `fc2` (INT8 GEMM → GELU → FP16 consumer returns NaN), attention is all INT8 or all FP16 with no Q/DQ behind an FP16 attention (TensorRT 11.3 computes that wrongly) and is INT8 only up to 325 tokens per window (Large's 485 ran no faster and lost 1.0 AP), and a convolution whose input channels are not a multiple of 32 stays FP16 (TensorRT stored the zero channels it added to the INT8 patch embedding's input in the engine, as a batch-sized constant). Any placement change needs a COCO AP and latency measurement. The TensorRT INT8 figures in the docs come from an external benchmark notebook, not a harness in this repository; Section 8 of `docs/cookbooks/export-cuda.ipynb` runs the same comparison for Small at batch 1 on a val2017 subset, but does not regenerate them.
+- Do not quote INT8 accuracy or speed figures, for any format, that no harness in the repository reproduces.
+
+**Model Selection (examples, docs, CI, tests, defaults):**
+
+- **Default to `RFDETRSmall` / `"rfdetr-small"` in docs and examples.** Use it wherever an example needs a concrete detection model.
+- **Default to `RFDETRNano` / `"rfdetr-nano"` in CI and tests.**
+- **Never use base models** (`RFDETRBase` / `"rfdetr-base"`) in new examples, docs, CI, or tests — treat as deprecated; substitute `small` in docs/examples and `nano` in CI/tests.
+- **Released detection sizes** — `nano`, `small`, `medium`, `large` (plus `xlarge`/`2xlarge` Plus models). Always pick one of these for plain object detection; never a `-preview` variant.
+- **Released segmentation sizes** — `RFDETRSegNano`/`Small`/`Medium`/`Large` / `"rfdetr-seg-{nano,small,medium,large}"` (plus `xlarge`/`2xlarge`). Use a sized seg model for segmentation; `RFDETRSegPreview` / `"rfdetr-seg-preview"` is now superseded — do not use it in new examples, docs, or tests.
+- **`-preview` variants** are for capabilities with **no released sized version yet**. Only keypoints remain preview-only: `RFDETRKeypointPreview` / `"rfdetr-keypoint-preview"`. Use a preview variant **only** for that task — never as a stand-in for detection or segmentation.
+
+**Imports:**
+
+- Keep imports at module scope by default. Use a local import only for a verified circular-import boundary, optional dependency boundary, import-behavior test, or material startup/side-effect constraint; the reason must be evident from the surrounding code or documented where it is not obvious.
+
+```python
+# Prefer direct project imports. Standard aliases such as `numpy as np`,
+# `torch.nn.functional as F`, and lazy module aliases are allowed when conventional.
+from rfdetr.utilities.distributed import get_rank, get_world_size, is_main_process, save_on_master
+from rfdetr.utilities.logger import get_logger
+
+# Logger usage
+logger = get_logger()  # Default name: "rf-detr", reads LOG_LEVEL env var
+
+# TQDM (environment compatibility)
+from tqdm.auto import tqdm  # NOT: from tqdm import tqdm
+```
+
+**Plus Models (XLarge, 2XLarge):**
+
+- Requires separate `rfdetr_plus` package (PML 1.0 license)
+- Import handled lazily via `__getattr__` in `src/rfdetr/platform/models.py`
+- Raises `ImportError` if package not installed
+
+**Subprocess Usage:**
+
+```python
+import subprocess
+
+result = subprocess.run(
+    ["command", "arg1", "arg2"],
+    check=True,  # Raise CalledProcessError on failure
+    text=True,  # Return stdout/stderr as strings
+    capture_output=True,
+)
+# Note: stderr is already a string, don't decode
+```
+
+**Logging:**
+
+- Use `logger.debug()` for detailed tensor/shape information (not `logger.info()`)
+- Use `logger.info()` for high-level progress/status
+
+**Checkpoint Handling:**
+
+- Always check file existence before operations
+- Prevents errors when training is interrupted
+
+### Type Hints & Docstrings
+
+> [!IMPORTANT]
+>
+> **Canonical Reference:** See [Google-Style Docstrings and Mandatory Type Hints](.github/CONTRIBUTING.md#google-style-docstrings-and-mandatory-type-hints) in CONTRIBUTING.md for complete requirements and examples.
+>
+> **Requirements:**
+>
+> - MANDATORY type hints for all function parameters and return types
+> - MANDATORY Google-style docstrings for all functions and classes
+> - **Do not duplicate types in docstrings** - types are in the function signature
+> - Target Python version: 3.10+
+> - **Helper functions in `tests/` need a doctest too**: any non-`test_*` function used by tests (fixture builders, assertion helpers, reference implementations) needs a docstring with an `Examples` doctest that exercises it directly — `pyproject.toml` runs `--doctest-plus` across `tests/` on purpose. Skip the live doctest (`# doctest: +SKIP` + one-line reason) only when the helper can't run standalone (e.g. a `@pytest.fixture`, or needs real GPU/XLA/network hardware).
+
+## Common Workflows
+
+### Making Changes
+
+1. **Setup:** `uv sync --all-groups`
+2. **Before changes:** Run tests to establish baseline
+3. **Development:**
+    - Make minimal, focused changes
+    - Follow existing patterns and conventions
+    - Add type hints and docstrings
+4. **Testing:**
+    - Bug fixes: Write test first, then fix
+    - Features: Test all major use cases
+    - Run: `uv run --no-sync pytest src/ tests/ scripts/ -n 2 -m "not gpu" --ignore=tests/run_smoke_all_models.py --ignore=tests/legacy/test_checkpoint_compat.py --timeout=240 --durations=50`
+5. **Quality checks:** `pre-commit run --all-files`
+6. **Build (if needed):** `uv build`
+7. **Commit:** Pre-commit hooks run automatically
+
+### Adding New Model Variants
+
+> [!IMPORTANT]
+>
+> **Canonical Reference:** See [Adding a New Model](.github/CONTRIBUTING.md#adding-a-new-model) in CONTRIBUTING.md for detailed guidance.
+>
+> Always consult maintainers before implementing new models.
+
+### Security Considerations
+
+- **Write secure code:** Avoid injection vulnerabilities (XSS, SQL injection, command injection)
+- **Validate inputs:** Especially for file paths, URLs, and user-provided data
+- **No credentials:** Never commit API keys, tokens, or credentials
+- **Follow OWASP best practices**
+
+## CI/CD Workflows
+
+GitHub Actions workflows in `.github/workflows/`:
+
+- **ci-tests-cpu.yml:** CPU tests on Linux across Python 3.10-3.14, plus Windows and macOS on Python 3.10 and 3.13
+- **ci-tests-gpu.yml:** GPU-dependent tests
+- **ci-github-tests.yml:** Tests and doctests for the helper scripts under `.github/scripts/`, which the CPU/GPU suites never collect; their tests live in `.github/_tests/`
+- **ci-legacy-checkpoints.yml:** Backward-compatibility checkpoint-loading tests across historical rfdetr releases (advisory only — not a required check; a compat break does not block merge)
+- **ci-deps-resolution.yml:** Dependency resolution (`uv lock`) plus an install-plan check (`uv sync --dry-run`) for every extra on every Python interpreter allowed by requires-python (3.10-3.14). Resolution alone does not prove a pinned version ships a wheel for the interpreter in use. The `list-extras` job derives the checked set from every `[project.optional-dependencies]` extra, so a new extra is covered automatically
+- **build-package.yml:** Build and validate distributions
+- **ci-build-docs.yml:** Documentation builds
+- **publish-docs.yml:** Deploy docs to GitHub Pages
+
+**Concurrency:** PRs cancel in-progress runs on new pushes
+
+## Additional Resources
+
+- **Documentation:** https://rfdetr.roboflow.com
+- **Repository:** https://github.com/roboflow/rf-detr
+- **Issues:** https://github.com/roboflow/rf-detr/issues
+- **Discord:** https://discord.gg/GbfgXGJ8Bk
+- **Contributing:** `.github/CONTRIBUTING.md`
+- **Copilot Instructions:** `.github/copilot-instructions.md`
+
+---
+
+**Note:** This file is designed for AI coding agents. For human-readable project information, see README.md. For contribution guidelines, see CONTRIBUTING.md.

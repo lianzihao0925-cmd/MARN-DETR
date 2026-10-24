@@ -1,0 +1,200 @@
+---
+description: Run RF-DETR object detection on images, video, and streams. Nano to 2XLarge models with 2.3-17.2 ms latency and up to 60.1 AP on COCO.
+---
+
+# Run an RF-DETR Object Detection Model
+
+RF-DETR is a real-time transformer architecture for object detection, built on a DINOv2 vision transformer backbone (a PE-Core-T backbone for Atto, Femto and Pico). The base models are trained on the Microsoft COCO dataset and achieve state-of-the-art accuracy and latency trade-offs.
+
+## Pre-trained Checkpoints
+
+RF-DETR offers model sizes from Atto to 2XLarge, allowing trade-offs between accuracy, latency, and parameter count. All latency numbers were measured on an NVIDIA T4 using TensorRT, FP16, and batch size 1. Core models (Nano to Large) are licensed under Apache 2.0. Atto, Femto, Pico, XLarge and 2XLarge (marked with △) are provided by the [`rfdetr_plus`](https://github.com/roboflow/rf-detr-plus) extension (`pip install rfdetr[plus]`) under the Platform Model License 1.0 and require a Roboflow account.
+
+| Size | RF-DETR package class | Inference package alias | COCO AP<sub>50</sub> | COCO AP<sub>50:95</sub> | Latency (ms) | Params (M) | Resolution |  License   |
+| :--: | :-------------------: | :---------------------- | :------------------: | :---------------------: | :----------: | :--------: | :--------: | :--------: |
+|  A   |    `RFDETRAtto` △     | `rfdetr-atto`           |         49.4         |          30.5           |     1.0      |    7.4     |  380x380   |  PML 1.0   |
+|  F   |    `RFDETRFemto` △    | `rfdetr-femto`          |         55.9         |          37.8           |     1.4      |    7.9     |  384x384   |  PML 1.0   |
+|  P   |    `RFDETRPico` △     | `rfdetr-pico`           |         60.2         |          41.6           |     1.7      |    8.4     |  560x560   |  PML 1.0   |
+|  N   |     `RFDETRNano`      | `rfdetr-nano`           |         67.6         |          48.4           |     2.3      |    30.5    |  384x384   | Apache 2.0 |
+|  S   |     `RFDETRSmall`     | `rfdetr-small`          |         72.1         |          53.0           |     3.5      |    32.1    |  512x512   | Apache 2.0 |
+|  M   |    `RFDETRMedium`     | `rfdetr-medium`         |         73.6         |          54.7           |     4.4      |    33.7    |  576x576   | Apache 2.0 |
+|  L   |     `RFDETRLarge`     | `rfdetr-large`          |         75.1         |          56.5           |     6.8      |    33.9    |  704x704   | Apache 2.0 |
+|  XL  |   `RFDETRXLarge` △    | `rfdetr-xlarge`         |         77.4         |          58.6           |     11.5     |   126.4    |  700x700   |  PML 1.0   |
+| 2XL  |   `RFDETR2XLarge` △   | `rfdetr-2xlarge`        |         78.5         |          60.1           |     17.2     |   126.9    |  880x880   |  PML 1.0   |
+
+> △ Requires the `rfdetr_plus` extension: `pip install rfdetr[plus]`
+
+## Run on an Image
+
+Perform inference on an image using either the `rfdetr` package or the `inference` package. To use a different model size, select the corresponding class or alias from the table above.
+
+=== "rfdetr"
+
+    ```python
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+    from rfdetr.assets.coco_classes import COCO_CLASSES
+
+    model = RFDETRMedium()
+
+    detections = model.predict("https://media.roboflow.com/dog.jpg", threshold=0.5)
+
+    labels = [f"{COCO_CLASSES[class_id]}" for class_id in detections.class_id]
+
+    annotated_image = sv.BoxAnnotator().annotate(detections.metadata["source_image"], detections)
+    annotated_image = sv.LabelAnnotator().annotate(annotated_image, detections, labels)
+    ```
+
+=== "inference"
+
+    ```python
+    import requests
+    import supervision as sv
+    from PIL import Image
+    from inference import get_model
+
+    model = get_model("rfdetr-medium")
+
+    image = Image.open(requests.get("https://media.roboflow.com/dog.jpg", stream=True).raw)
+    predictions = model.infer(image, confidence=0.5)[0]
+    detections = sv.Detections.from_inference(predictions)
+
+    annotated_image = sv.BoxAnnotator().annotate(image, detections)
+    annotated_image = sv.LabelAnnotator().annotate(annotated_image, detections)
+    ```
+
+!!! note "Using COCO classes vs. fine-tuned model classes"
+
+    `COCO_CLASSES` works for COCO-pretrained models (80 COCO classes, indexed 0-79). For fine-tuned models, use `detections.data["class_name"]` instead — it resolves class names from the checkpoint and works for both COCO and custom datasets.
+
+`predict()` resizes without antialiasing by default (`antialias=False`), which matches checkpoints trained with the default CPU augmentation backend when `rfdetr[augment]` is installed (Albumentations). Pass `antialias=True` for checkpoints trained with torchvision resizing: the Kornia/GPU augmentation backend, the CPU backend without `rfdetr[augment]`, or older RF-DETR releases. Antialiasing costs a little extra preprocessing time per image. Exported models and the `rfdetr.export` runtime helpers always resize without antialiasing, so `antialias=True` results will not match them unless you pre-resize the image with antialiasing yourself. On MPS with PyTorch older than 2.7, `antialias=True` resizes on the CPU because MPS has no antialiased resize kernel there.
+
+For repeated inference with the `rfdetr` package on CUDA, a fixed batch size, and a fixed resolution, the direct CUDA Graph backend records the TorchScript forward once and replays it. Capture allocates a graph-private memory pool holding the captured forward's intermediates plus the static input/output buffers; it persists for the graph's lifetime and scales with batch size, resolution and model, so this backend uses more device memory than the default TorchScript backend. The backend was measured on detection RF-DETR Nano at batch size 1; segmentation and keypoint models use the same path but are unmeasured, and replay/clone memory cost grows with masks and batch size. Outputs are cloned before they leave the graph, so predictions returned by an earlier call are not overwritten by the next one. The default stays `"torchscript"`:
+
+```python
+model.inference(compile_backend="cudagraph", batch_size=1, dtype="float16")
+```
+
+An operator that CUDA Graphs cannot capture makes `inference()` raise a `RuntimeError`. A failed capture can leave CUDA random-number state unusable, so restart the process before choosing another backend.
+
+PyTorch Inductor is another opt-in backend for long-running inference. Cold compilation can have a higher one-time setup cost, but Inductor can apply broader graph optimizations and later processes may reuse its disk cache. Both examples require a compatible CUDA device, operators, and installed PyTorch version; `dtype="float16"` also requires FP16 support. The external `inference` package API shown above does not expose `RFDETR.inference()`:
+
+```python
+model.inference(compile_backend="inductor", batch_size=1, dtype="float16")
+```
+
+For memory-constrained inference-only deployments with the `rfdetr` package, optimize the loaded model in place before calling `predict()`. Pass `dtype="float16"` to halve weight memory in addition to clearing the base model reference. This operation is irreversible — to restore the original model, create a new `RFDETR` instance:
+
+```python
+model.inference(compile=False, inplace=True, dtype="float16")
+```
+
+## Run on video, webcam, or RTSP stream
+
+These examples use OpenCV for decoding and display. Replace `<SOURCE_VIDEO_PATH>`, `<WEBCAM_INDEX>`, and `<RTSP_STREAM_URL>` with your inputs. `<WEBCAM_INDEX>` is usually `0` for the default camera.
+
+=== "video"
+
+    ```python
+    import cv2
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+    from rfdetr.assets.coco_classes import COCO_CLASSES
+
+    model = RFDETRMedium()
+
+    video_capture = cv2.VideoCapture("<SOURCE_VIDEO_PATH>")
+    if not video_capture.isOpened():
+        raise RuntimeError("Failed to open video source: <SOURCE_VIDEO_PATH>")
+
+    while True:
+        success, frame_bgr = video_capture.read()
+        if not success:
+            break
+
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        detections = model.predict(frame_rgb, threshold=0.5)
+
+        labels = [COCO_CLASSES[class_id] for class_id in detections.class_id]
+
+        annotated_frame = sv.BoxAnnotator().annotate(frame_bgr, detections)
+        annotated_frame = sv.LabelAnnotator().annotate(annotated_frame, detections, labels)
+
+        cv2.imshow("RF-DETR Video", annotated_frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+    ```
+
+=== "webcam"
+
+    ```python
+    import cv2
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+    from rfdetr.assets.coco_classes import COCO_CLASSES
+
+    model = RFDETRMedium()
+
+    WEBCAM_INDEX = 0
+    video_capture = cv2.VideoCapture(WEBCAM_INDEX)
+    if not video_capture.isOpened():
+        raise RuntimeError(f"Failed to open webcam: {WEBCAM_INDEX}")
+
+    while True:
+        success, frame_bgr = video_capture.read()
+        if not success:
+            break
+
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        detections = model.predict(frame_rgb, threshold=0.5)
+
+        labels = [COCO_CLASSES[class_id] for class_id in detections.class_id]
+
+        annotated_frame = sv.BoxAnnotator().annotate(frame_bgr, detections)
+        annotated_frame = sv.LabelAnnotator().annotate(annotated_frame, detections, labels)
+
+        cv2.imshow("RF-DETR Webcam", annotated_frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+    ```
+
+=== "stream"
+
+    ```python
+    import cv2
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+    from rfdetr.assets.coco_classes import COCO_CLASSES
+
+    model = RFDETRMedium()
+
+    video_capture = cv2.VideoCapture("<RTSP_STREAM_URL>")
+    if not video_capture.isOpened():
+        raise RuntimeError("Failed to open RTSP stream: <RTSP_STREAM_URL>")
+
+    while True:
+        success, frame_bgr = video_capture.read()
+        if not success:
+            break
+
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        detections = model.predict(frame_rgb, threshold=0.5)
+
+        labels = [COCO_CLASSES[class_id] for class_id in detections.class_id]
+
+        annotated_frame = sv.BoxAnnotator().annotate(frame_bgr, detections)
+        annotated_frame = sv.LabelAnnotator().annotate(annotated_frame, detections, labels)
+
+        cv2.imshow("RF-DETR RTSP", annotated_frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+    ```

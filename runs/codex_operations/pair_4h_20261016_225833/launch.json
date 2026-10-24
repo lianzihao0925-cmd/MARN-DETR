@@ -1,0 +1,8 @@
+{
+  "pid": 215433,
+  "launch_dir": "/root/autodl-tmp/project_marn-detr/runs/codex_operations/pair_4h_20261016_225833",
+  "gpu_hours_cap": 4,
+  "epochs_per_arm": 4,
+  "user_authorization": "User confirmed 4 GPU hours in this chat",
+  "purpose": "Paired MARN and query-only screening; no baseline rerun"
+}

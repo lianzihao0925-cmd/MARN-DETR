@@ -1,0 +1,36 @@
+[
+  {
+    "device": "cpu",
+    "autocast_bf16": false,
+    "passed": true,
+    "checks": [
+      "empty_bypass",
+      "zero_init_identity",
+      "snapshot_independence",
+      "invalid_nan_slot",
+      "two_step_gradient",
+      "unselected_identity",
+      "residual_bound",
+      "candidate_rejection",
+      "eval_read_only",
+      "state_roundtrip"
+    ]
+  },
+  {
+    "device": "cuda",
+    "autocast_bf16": true,
+    "passed": true,
+    "checks": [
+      "empty_bypass",
+      "zero_init_identity",
+      "snapshot_independence",
+      "invalid_nan_slot",
+      "two_step_gradient",
+      "unselected_identity",
+      "residual_bound",
+      "candidate_rejection",
+      "eval_read_only",
+      "state_roundtrip"
+    ]
+  }
+]

@@ -1,0 +1,25 @@
+[
+  {
+    "epoch": 1,
+    "global_step": 4,
+    "batches": 4,
+    "all_losses_finite": true,
+    "before_checkpoint_seconds": 4.420613579452038,
+    "peak_allocated_GiB": 2.5991945266723633,
+    "peak_reserved_GiB": 3.79296875,
+    "learning_rates": [
+      6.957038105718575e-05
+    ],
+    "bank": {
+      "step": 4,
+      "microbatches": 1,
+      "unique_objects": 0,
+      "fill": 0,
+      "update": 0,
+      "replace": 0,
+      "valid_slots": 0,
+      "covered_classes": 0
+    },
+    "through_last_checkpoint_seconds": 6.174271922558546
+  }
+]

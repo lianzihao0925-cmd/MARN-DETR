@@ -1,0 +1,1 @@
+BUDGET_JOB_DONE {"name": "mechanism_audit", "started_unix": 1792242548.4449549, "limit_seconds": 300, "command": ["/root/miniconda3/envs/marn-detr/bin/python", "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/mechanism_audit.py"], "pid": 253619, "exit_code": 0, "seconds": 34.16512060165405, "finished_unix": 1792242582.6100788}

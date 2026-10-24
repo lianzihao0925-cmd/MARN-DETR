@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "kind": "online",
+  "seed": 42,
+  "global_step": 6,
+  "wall_seconds": 12.914405602961779,
+  "supervision_examples": 273,
+  "probe_examples": 80,
+  "probe_batches": 5,
+  "probe_seconds": 0.3793041817843914,
+  "null_verified": true,
+  "key_gradient": true,
+  "out_gradient": true,
+  "router_gradient": true,
+  "native_checkpoint_strict": true,
+  "inference_export_strict": true,
+  "regular": {
+    "AP": 0.6347983479499817,
+    "AP50": 0.7803565263748169,
+    "AP75": 0.707706868648529,
+    "APs": 0.34412533044815063,
+    "APm": 0.6843754649162292,
+    "APl": 0.8528911471366882,
+    "AR100": 0.7158187031745911
+  },
+  "ema": {
+    "AP": 0.6308038830757141,
+    "AP50": 0.7816621661186218,
+    "AP75": 0.7015808820724487,
+    "APs": 0.3348909914493561,
+    "APm": 0.6812076568603516,
+    "APl": 0.8524824976921082,
+    "AR100": 0.7028601765632629
+  },
+  "probe_positive": 32,
+  "probe_abs_sum": 0.1114460751414299,
+  "route_images": 80,
+  "route_selected_sum": 468
+}

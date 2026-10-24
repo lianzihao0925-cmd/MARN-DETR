@@ -1,0 +1,43 @@
+[2026-10-16 15:26:22] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+[2026-10-16 15:26:22] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:26:22] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:26:23] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+[2026-10-16 15:26:25] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:26:25] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 15:26:26] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+[2026-10-16 15:26:26] [INFO] rf-detr - Using multi-scale training with square resize and scales: [672]
+loading annotations into memory...
+Done (t=0.50s)
+creating index...
+index created!
+/root/autodl-tmp/project_marn-detr/rf-detr/../runs/baseline_official/evaluate_small.py:26: UserWarning: Dataset '/root/autodl-tmp/project_marn-detr/datasets/coco' has 80 classes but the model has num_classes=90. Evaluating with the model's head unchanged; class indices may not line up with the dataset.
+  metrics = model.evaluate(
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+[2026-10-16 15:26:27] [INFO] rf-detr - Skipping validation-loss computation: compute_val_loss='auto' found no scheduler or callback monitoring 'val/loss', so no 'val/loss' metric is logged this run. Set compute_val_loss=True to log it every validation epoch (for example to read the curve from metrics.csv, TensorBoard, or Weights & Biases).
+              Val [1m([0mEpoch [1;36m1[0m/[1;36m100[0m[1m)[0m — Overall Metrics               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           mAP            ┃  mAR   ┃         F1 sweep         ┃
+┡━━━━━━━━┯━━━━━━━━┯━━━━━━━━╇━━━━━━━━╇━━━━━━━━┯━━━━━━━━┯━━━━━━━━┩
+│ [1;92m50:95[0m  │   [1;36m50[0m   │   [1;36m75[0m   │  @[1;36m500[0m  │   F1   │  Prec  │ Recall │
+├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ [1;36m0.5296[0m │ [1;36m0.7204[0m │ [1;36m0.5722[0m │ [1;36m0.7048[0m │ [1;36m0.6980[0m │ [1;36m0.7673[0m │ [1;36m0.6484[0m │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Validate metric      ┃       DataLoader 0        ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│          val/F1           │    0.6979672908782959     │
+│        val/mAP_50         │    0.7204462885856628     │
+│       val/mAP_50_95       │    0.5296114087104797     │
+│        val/mAP_75         │    0.5721679925918579     │
+│          val/mAR          │    0.7047722935676575     │
+│       val/precision       │    0.7673258781433105     │
+│        val/recall         │    0.6484428644180298     │
+└───────────────────────────┴───────────────────────────┘
+
+=== 完整验证结果 ===
+{'val/mAP_50_95': 0.5296114087104797, 'val/mAP_50': 0.7204462885856628, 'val/mAP_75': 0.5721679925918579, 'val/mAR': 0.7047722935676575, 'val/F1': 0.6979672908782959, 'val/precision': 0.7673258781433105, 'val/recall': 0.6484428644180298}
+A4_EVALUATION_COMPLETED

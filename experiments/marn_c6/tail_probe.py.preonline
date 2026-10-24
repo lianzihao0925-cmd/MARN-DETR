@@ -1,0 +1,55 @@
+"""Detached prefix cache for exact eager detection tail interventions, T=1."""
+import copy
+import torch
+
+def detached(value):
+    if torch.is_tensor(value):return value.detach()
+    if isinstance(value,tuple):return tuple(detached(x) for x in value)
+    if isinstance(value,list):return [detached(x) for x in value]
+    if isinstance(value,dict):return {k:detached(v) for k,v in value.items()}
+    return value
+
+class TailProbe:
+    def __init__(self,module):
+        self.module=module;self.model=module.model;self.decoder=self.model.transformer.decoder;self.adapter=module.adapter
+        assert self.decoder.lite_refpoint_refine and self.decoder.bbox_reparam and self.adapter.config.layer==0
+        assert not self.decoder.enable_keypoint_processing and self.model.segmentation_head is None
+        self.enabled=True;self.cache={}
+        self.handles=[self.adapter.register_forward_pre_hook(self.capture_adapter),self.adapter.reader.register_forward_pre_hook(self.capture_reader),self.decoder.layers[1].register_forward_pre_hook(self.capture_tail,with_kwargs=True)]
+
+    def capture_adapter(self,module,args):
+        if self.enabled:self.cache['adapter']=detached(args)
+
+    def capture_reader(self,module,args):
+        if self.enabled:self.cache['reader']=detached(args)
+
+    def capture_tail(self,module,args,kwargs):
+        if self.enabled:self.cache['tail']=(detached(args),detached(kwargs))
+
+    def reset(self):self.cache={}
+
+    @torch.no_grad()
+    def replay(self,selected=None):
+        args,kwargs=self.cache['tail']
+        old=self.enabled;self.enabled=False
+        try:
+            if selected is None:x=args[0]
+            else:
+                q,logits,boxes,_,snap=self.cache['reader']
+                memory,summary,accepted=self.adapter.reader(q,logits,boxes,selected,snap)
+                x=self.adapter.refiner(q,memory,summary,accepted)
+            intermediate=[self.cache['adapter'][1]]
+            for layer in self.decoder.layers[1:]:
+                x=layer(x,*args[1:],**kwargs)
+                intermediate.append(self.decoder.norm(x))
+        finally:self.enabled=old
+        # Preserve native layer-stacked head GEMM shapes; evaluating only the
+        # last layer can differ by a few fp32 ULPs despite equivalent algebra.
+        x=torch.stack(intermediate);reference=self.cache['adapter'][2]
+        delta=self.model.bbox_embed(x)
+        boxes=torch.cat((delta[...,:2]*reference[...,2:]+reference[...,:2],delta[...,2:].exp()*reference[...,2:]),-1)
+        return {'pred_logits':self.model.class_embed(x)[-1],'pred_boxes':boxes[-1]}
+
+    def close(self):
+        for h in self.handles:h.remove()
+        self.cache={}

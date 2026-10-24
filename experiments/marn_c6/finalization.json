@@ -1,0 +1,214 @@
+{
+  "checked_unix": 1792249525.0557246,
+  "task_authorization_comment": "codex-marn-20261016",
+  "task_authorization_lines": 0,
+  "own_pids_still_present": [],
+  "gpu_processes_csv": "pid, used_gpu_memory [MiB]\n",
+  "retained_formal_weights": [
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/query_only/best_regular.ckpt",
+      "bytes": 516827839
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/query_only/best_ema.ckpt",
+      "bytes": 516827967
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/query_only/last.ckpt",
+      "bytes": 516828031
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/query_only/last_regular.pth",
+      "bytes": 129365117
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/query_only/last_ema.pth",
+      "bytes": 129365117
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/random/best_regular.ckpt",
+      "bytes": 516829564
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/random/best_ema.ckpt",
+      "bytes": 516829628
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/random/last.ckpt",
+      "bytes": 516829756
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/random/last_regular.pth",
+      "bytes": 129365181
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/random/last_ema.pth",
+      "bytes": 129365181
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/online/best_regular.ckpt",
+      "bytes": 516967283
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/online/best_ema.ckpt",
+      "bytes": 516967347
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/online/last.ckpt",
+      "bytes": 516967475
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/online/last_regular.pth",
+      "bytes": 129365181
+    },
+    {
+      "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_screen/online/last_ema.pth",
+      "bytes": 129365181
+    }
+  ],
+  "smoke_cleanup": {
+    "scope": "passed engineering smoke weights only; formal and previous checkpoints retained",
+    "time_unix": 1792244411.8370724,
+    "files": [
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/best_regular.ckpt",
+        "bytes": 516827775
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/best_ema.ckpt",
+        "bytes": 516827903
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/last.ckpt",
+        "bytes": 516827967
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/last_regular.pth",
+        "bytes": 129365117
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/query_only/last_ema.pth",
+        "bytes": 129365117
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/best_regular.ckpt",
+        "bytes": 516829500
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/best_ema.ckpt",
+        "bytes": 516829628
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/last.ckpt",
+        "bytes": 516829692
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/last_regular.pth",
+        "bytes": 129365181
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/random/last_ema.pth",
+        "bytes": 129365181
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/best_regular.ckpt",
+        "bytes": 516967219
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/best_ema.ckpt",
+        "bytes": 516967347
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/last.ckpt",
+        "bytes": 516967411
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/last_regular.pth",
+        "bytes": 129365181
+      },
+      {
+        "path": "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/online_smoke/online/last_ema.pth",
+        "bytes": 129365181
+      }
+    ],
+    "status": "completed",
+    "freed_bytes": 5428065400
+  },
+  "budget": {
+    "deadline": 1792274400,
+    "phase_cap_seconds": 14400,
+    "previous_conservative_seconds": 4140,
+    "jobs": [
+      {
+        "name": "mechanism_audit",
+        "started_unix": 1792242548.4449549,
+        "limit_seconds": 300,
+        "command": [
+          "/root/miniconda3/envs/marn-detr/bin/python",
+          "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/mechanism_audit.py"
+        ],
+        "pid": 253619,
+        "exit_code": 0,
+        "seconds": 34.16512060165405,
+        "finished_unix": 1792242582.6100788
+      },
+      {
+        "name": "correctness",
+        "started_unix": 1792243126.6259038,
+        "limit_seconds": 180,
+        "command": [
+          "/root/miniconda3/envs/marn-detr/bin/python",
+          "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/check_correctness.py"
+        ],
+        "pid": 254346,
+        "exit_code": 1,
+        "seconds": 36.26776671409607,
+        "finished_unix": 1792243162.8936734
+      },
+      {
+        "name": "correctness2",
+        "started_unix": 1792243546.981664,
+        "limit_seconds": 180,
+        "command": [
+          "/root/miniconda3/envs/marn-detr/bin/python",
+          "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/check_correctness.py"
+        ],
+        "pid": 254678,
+        "exit_code": 0,
+        "seconds": 36.41574740409851,
+        "finished_unix": 1792243583.3974144
+      },
+      {
+        "name": "online_smoke",
+        "started_unix": 1792243975.1855175,
+        "limit_seconds": 600,
+        "command": [
+          "/root/miniconda3/envs/marn-detr/bin/python",
+          "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/run_online_screen.py",
+          "--smoke",
+          "--tag",
+          "online_smoke"
+        ],
+        "pid": 255061,
+        "exit_code": 0,
+        "seconds": 121.62259697914124,
+        "finished_unix": 1792244096.8081172
+      },
+      {
+        "name": "online_screen",
+        "started_unix": 1792244208.2904003,
+        "limit_seconds": 6500,
+        "command": [
+          "/root/miniconda3/envs/marn-detr/bin/python",
+          "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/run_online_screen.py",
+          "--tag",
+          "online_screen"
+        ],
+        "pid": 255820,
+        "exit_code": 0,
+        "seconds": 4820.877694129944,
+        "finished_unix": 1792249029.1681066
+      }
+    ]
+  }
+}

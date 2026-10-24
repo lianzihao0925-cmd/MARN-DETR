@@ -1,0 +1,28 @@
+Seed set to 42
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: PretrainWeightsCompatibilityWarning: RFDETRSmallConfig was instantiated with pretrain_weights=None. The model will be initialised from scratch, which typically produces lower accuracy than fine-tuning from the published checkpoint ('rf-detr-small.pth').
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-17 19:14:34] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-17 19:14:34] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+loading annotations into memory...
+Done (t=12.74s)
+creating index...
+index created!
+ROUTER_PROBE 32 images 256 seconds 19.5
+ROUTER_PROBE 64 images 512 seconds 22.7
+ROUTER_PROBE 96 images 768 seconds 25.8
+ROUTER_PROBE 128 images 1024 seconds 28.9
+ROUTER_PROBE 160 images 1280 seconds 31.9
+ROUTER_PROBE 192 images 1536 seconds 35.0
+ROUTER_PROBE 224 images 1792 seconds 38.0
+ROUTER_PROBE 256 images 2048 seconds 41.2
+ROUTER_PROBE 288 images 2304 seconds 44.2
+ROUTER_PROBE 320 images 2560 seconds 47.3
+ROUTER_PROBE 352 images 2816 seconds 50.4
+ROUTER_PROBE 384 images 3072 seconds 53.4
+ROUTER_PROBE 416 images 3328 seconds 56.5
+ROUTER_PROBE 448 images 3584 seconds 59.6
+ROUTER_PROBE 480 images 3840 seconds 62.7
+ROUTER_PROBE 512 images 4096 seconds 65.7
+ROUTER_PILOT_COMPLETED {"stage": "complete", "images": 4096, "examples": 8192, "train_examples": 6554, "holdout_examples": 1638, "source_split": "COCO train2017 only; split by image", "detector_bank_frozen": true, "probe_precision": "fp32", "context_queries": 29, "exploration_queries_per_image": 2, "backbone_reuse": false, "limitations": "offline frozen-detector pilot; no online route training, no prefix reuse, not complete UAMR or convergence evidence", "label_mean": -4.0488180275133345e-07, "label_std": 0.0006349069881252944, "positive_fraction": 0.5015869140625, "max_abs_label": 0.03877842426300049, "seconds": 66.35372072458267, "holdout_constant_mse": 31.777851104736328, "holdout_best_mse": 31.76833152770996, "holdout_correlation": 0.018465550616383553, "best_epoch": 7, "gate_passed": false, "passed": true}

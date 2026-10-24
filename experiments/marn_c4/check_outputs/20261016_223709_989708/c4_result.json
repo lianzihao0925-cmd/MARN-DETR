@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "stage": "three_short_epochs",
+  "scope": "engineering only; synthetic plateau scores are not research AP",
+  "error": "AssertionError()",
+  "total_seconds": 31.934774216264486
+}

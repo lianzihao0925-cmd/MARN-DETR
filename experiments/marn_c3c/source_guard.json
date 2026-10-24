@@ -1,0 +1,15 @@
+{
+  "marn/core.py": "42010d40282af636faf8dee66aaaebde13ba5adcb790cbe30d3598cffc244796",
+  "models/lwdetr.py": "ce4a487562e21e0c6d4d029bd676c929ad2e9df4b98ac28d8df44cea9fd396a3",
+  "models/transformer.py": "18705e4e250bf421b0eab1e56a9088c3879e6d7ad4d476c34f78e018facdf031",
+  "models/criterion.py": "4a2fb7a8e37cfc9d16a22d280506f885a2d992681211bd35535a16d64bed2de6",
+  "training/module_model.py": "d962e8bdf275d61e0cae100eaa20e34f62a80e82a282b290a54cf1adfd97dd8a",
+  "training/module_data.py": "37fe493dd1868ead3d18320a72ab9c64c33cfdd89d4d0e96f426b3651b97c2d1",
+  "training/callbacks/ema.py": "41ab4c516a5a11b8e239f2173b384064d8a02774bd042e0a99840cca228afbda",
+  "config.py": "5968e352e67bed9dabaaccfe0ee23caaa07569455e1eab47023d5622be9e5675",
+  "marn/data.py": "ec6e9d837db2f2194ba7c1445b5987316a4ae74bca2769737ce52c1b4fe96b74",
+  "datasets/coco.py": "7054d230f26fa55aed8bd8559aaea3b0cad0c841063fdc0be68692bd8b30775b",
+  "utilities/tensors.py": "f1cffae24aa5a3d5ad360ba389996565557422ae67567275576d54aad1df3dd5",
+  "marn/integration.py": "ab5d6d955f2eb845528749be973a73ce2769dfd8908610b8c76eefcb3a7f0474",
+  "marn/lifecycle.py": "4edfdf213e8d7af71d1a11306f0f5443e87f73986689beddd18e799c75cd5dea"
+}

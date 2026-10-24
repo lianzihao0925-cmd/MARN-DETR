@@ -1,0 +1,23 @@
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:280: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+[2026-10-16 22:17:50] [INFO] rf-detr - Building COCO train dataset with square resize at resolution 512
+/root/autodl-tmp/project_marn-detr/rf-detr/src/rfdetr/datasets/coco.py:1503: UserWarning: RF-DETR has changed the default training augmentation backend from Albumentations (cv2 INTER_LINEAR, no antialias) to torchvision (BILINEAR + antialias=True). Pixel values will differ slightly from previous versions; mAP may drift on existing benchmarks. To restore the previous behaviour, install rfdetr[augment] and pass aug_config=AUG_CONFIG from rfdetr.datasets.aug_configs.
+  transforms=make_coco_transforms_square_div_64(
+loading annotations into memory...
+Done (t=12.27s)
+creating index...
+index created!
+[2026-10-16 22:18:03] [INFO] rf-detr - Building COCO val dataset with square resize at resolution 512
+loading annotations into memory...
+Done (t=0.36s)
+creating index...
+index created!
+/root/miniconda3/envs/marn-detr/lib/python3.11/site-packages/pydantic/main.py:129: FutureWarning: eval_ema_only is deprecated. New configurations evaluate only the selected model (EMA when use_ema=True) by default; legacy configurations are migrated from this flag. Set eval_base_model=True to also evaluate the base model.
+  'validate_assignment': lambda model, name, val: model.__pydantic_validator__.validate_assignment(model, name, val),  # pyright: ignore[reportAssignmentType]
+[2026-10-16 22:18:04] [WARNING] rf-detr - Using a different number of positional encodings than DINOv2, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 22:18:04] [WARNING] rf-detr - Using patch size 16 instead of 14, which means we're not loading DINOv2 backbone weights. This is not a problem if finetuning a pretrained RF-DETR model.
+[2026-10-16 22:18:05] [INFO] rf-detr - File /root/autodl-tmp/models/roboflow/rf-detr-small.pth already exists with correct MD5 hash.
+C3D_RUN_STARTED mode=marn repetition=1 seed=42
+C3D_WARMUP_COMPLETED mode=marn repetition=1
+C3D_RUN_COMPLETED {"mode": "marn", "repetition": 1, "warmup_batches": 10, "measured_batches": 10, "images": 160, "seconds": 30.452682092785835, "images_per_second": 5.254052812573235, "all_losses_finite": true, "optimizer_fused": true, "peak_allocated_GiB": 8.867050170898438, "peak_reserved_GiB": 10.1640625, "bank_at_measurement_start": {"valid_slots": 241, "total_slots": 320, "covered_classes": 70, "committed_step": 10}, "bank_at_measurement_end": {"valid_slots": 293, "total_slots": 320, "covered_classes": 77, "committed_step": 20}, "accepted_queries": 62400, "selected_queries": 62400, "unique_object_writes": 860}
+C3D_THROUGHPUT_COMPLETED {"diagnostic_only": true, "throughput_acceptance": false}

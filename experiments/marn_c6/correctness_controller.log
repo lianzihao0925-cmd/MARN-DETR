@@ -1,0 +1,1 @@
+BUDGET_JOB_DONE {"name": "correctness", "started_unix": 1792243126.6259038, "limit_seconds": 180, "command": ["/root/miniconda3/envs/marn-detr/bin/python", "/root/autodl-tmp/project_marn-detr/experiments/marn_c6/check_correctness.py"], "pid": 254346, "exit_code": 1, "seconds": 36.26776671409607, "finished_unix": 1792243162.8936734}
