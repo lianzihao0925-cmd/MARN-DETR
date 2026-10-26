@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import inspect
 import sys
 from collections.abc import Callable
 from typing import Any, NamedTuple, Union
@@ -1355,7 +1356,37 @@ class SetCriterion(nn.Module):
         # MARN_C2_V1: observe existing assignments without changing matcher/loss paths.
         observer = getattr(self, "marn_observer", None)
         if self.training and observer is not None:
-            observer(matched_outputs, all_indices, layer_suffixes, targets)
+            # The final output is always the first matched output (empty
+            # suffix).  MARN uses that assignment for candidate selection but
+            # indexes the insertion-layer raw features with the same query
+            # rows.  Passing both explicitly prevents the observer from
+            # silently selecting an auxiliary layer's Hungarian assignment.
+            final_indices = all_indices[0]
+            feature_indices = [source for source, _target in final_indices]
+            # Keep older experiment observers source-compatible while the
+            # formal MARN observer consumes the explicit final/feature index
+            # contract.  Signature inspection avoids swallowing TypeErrors
+            # raised from inside an observer implementation.
+            try:
+                observer_parameters = inspect.signature(observer).parameters
+                accepts_extended = (
+                    "final_indices" in observer_parameters
+                    or any(parameter.kind == inspect.Parameter.VAR_KEYWORD
+                           for parameter in observer_parameters.values())
+                )
+            except (TypeError, ValueError):
+                accepts_extended = False
+            if accepts_extended:
+                observer(
+                    matched_outputs,
+                    all_indices,
+                    layer_suffixes,
+                    targets,
+                    final_indices=final_indices,
+                    feature_indices=feature_indices,
+                )
+            else:
+                observer(matched_outputs, all_indices, layer_suffixes, targets)
 
         if num_boxes is None:
             num_boxes = self.num_boxes_for_targets(outputs, targets)

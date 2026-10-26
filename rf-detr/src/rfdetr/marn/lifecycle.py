@@ -66,8 +66,16 @@ class MARNTrainingModule(MARNModelModule):
         checkpoint.update(description(self))
 
     def on_load_checkpoint(self, checkpoint):
-        for key, value in description(self).items():
-            if checkpoint.get(key) != value:
+        expected = description(self)
+        for key, value in expected.items():
+            actual = checkpoint.get(key)
+            if key == "marn_config" and isinstance(actual, dict):
+                # Checkpoints created before the quality split have no eta.
+                # Treat that field as unknown; PrototypeBank migration keeps
+                # their old diagnostic quality and leaves Q_write as NaN.
+                actual = dict(actual)
+                actual.setdefault("quality_eta", None)
+            if actual != value:
                 raise ValueError(f'MARN checkpoint metadata mismatch: {key}')
         super().on_load_checkpoint(checkpoint)
 

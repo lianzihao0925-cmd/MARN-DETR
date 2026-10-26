@@ -1,0 +1,28 @@
+field,source,current_meaning,decision_or_stage,gt_or_future,risk_or_status
+all_indices,SetCriterion.forward/matcher,per-layer Hungarian assignments,write candidate selection,training matching uses GT,current writer now uses final assignment
+suffixes,SetCriterion.forward,""""" final; _0... auxiliary; _enc encoder",layer selection,no extra future info,feature content layer remains layer=0
+raw/capture,MARNAdapter.forward,insertion-layer query feature before MARN refinement,prototype content,no GT,layer 0 raw feature
+labels,target.labels,raw COCO category ID,slot class and candidate label,training GT,class mapping must remain original IDs
+pred_logits,layer_outputs,predicted class logits,conf and R,training prediction,not calibrated probability
+conf,final pred_logits/observe,matched-class confidence,write gate/reliability,training GT indirect,explicit field; unknown_mask bit when missing
+pred_boxes,final layer outputs,predicted normalized box,geometry and IoU,training prediction,final output for candidate metadata
+GT boxes,target.boxes,matched ground-truth box,paired IoU and write gate,training GT only,not used in validation/test online decisions
+IoU,paired_iou,prediction/GT overlap,write gate/reliability,training GT,explicit field; unknown_mask bit when missing
+quality_diag,observe and bank,legacy sqrt(conf*IoU),diagnostics only,training GT indirect,never a duplicate/eviction fallback
+R,compute_write_quality,classification-location reliability,Q_write component,training GT indirect,not retrieval relevance or task gain
+S,observe repeated object records,within-window feature stability,Q_write component,no extra GT but depends on repeat groups,singleton becomes unknown
+N,_novelty_and_coverage,candidate novelty against same-class bank,Q_write component,old snapshot only,proxy not validated coverage
+D_c,_novelty_and_coverage,same-class dispersion proxy,Q_write component,old snapshot only,empty/single slot policy fallback 1
+V,compute_write_quality,sqrt(N*D_c),Q_write component,old snapshot only,formula uncalibrated
+write_quality,compute_write_quality and bank,Q_write,write ordering/update maintenance,training candidate signals,default eta None means unknown
+similarity_update,MARNConfig/commit,cosine update criterion,prototype update,no GT,old threshold not calibrated
+feature_ema,MARNConfig/commit,EMA momentum,prototype update,no GT,affects drift/stability
+updated_step,commit,last commit training step,age/retrieval/eviction,no GT,not model or domain version
+update_count,commit,slot update count,read audit/version proxy,no GT,not model/projection version
+feature_layer,PrototypeBank buffer/commit,raw feature layer provenance,checkpoint/read audit,no future info,0 for new candidates; unknown sentinel for legacy
+match_source,PrototypeBank buffer/commit,matching source provenance,checkpoint/read audit,no future info,final code for new candidates; unknown sentinel for legacy
+unknown_mask,PrototypeBank buffer/migration/commit,bit flags for unknown conf/IoU/Q_write/provenance,migration and maintenance safety,no future info,never infer missing fields from quality_diag
+valid,PrototypeBank buffer,slot filled flag,retrieval eligibility and empty-slot fill,no GT,not quality
+selected,MARNAdapter.forward,deterministic pseudo-random query subset,query read routing,no GT/random seed,random baseline not UAMR
+accepted,PrototypeReader.forward,eligible retrieved memory exists,MGQR execution,no GT,not proof of positive intervention benefit
+UAMR benefit label,rfdetr.marn.uamr,paired intervention loss difference,router training/diagnostics,training paired intervention,not in core OCPM route; route remains closed
