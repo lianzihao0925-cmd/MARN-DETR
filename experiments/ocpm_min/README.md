@@ -59,9 +59,24 @@ python experiments/ocpm_min/compare.py --runs <dir-with-A/B/C>
 
 | File | Purpose |
 |---|---|
+| `tools/preflight.sh` | eight-point gate (processes, GPU, disk, weights md5, dataset counts, imports, git state, frozen protocol) |
+| `tools/run_abc.sh` | the controlled A → B → C comparison, skip-aware, one retry per condition |
+| `tools/run_lowdata.sh` | the low-data protocol (A / B / D over an image subset) with lr and MGQR override knobs |
+| `tools/run_ablation.sh` | the `wide` / `cover` / `lr` ablations |
+| `tools/watchdog.sh` | read-only health monitor that restarts a stalled runner at most twice |
 | `tools/gen_coco_c.py` | writes COCO-C style corrupted validation sets (5 corruptions × severity) reusing the clean `train2017` and annotations through symlinks |
 | `tools/eval_coco_c.py` | evaluates a saved checkpoint on a corrupted validation root without retraining |
 | `tools/progress.py` | live terminal dashboard for a running job (progress, step rate, GPU, per-epoch AP) |
+| `results/RESULTS.md`, `results/recorded_results.json` | every measured value, with the provenance caveat below |
+
+## Data availability
+
+The raw artifacts of these runs (per-run `*_metrics.json`, `*_bank.json`,
+`*_quality.json`, `*_resources.json`, the read-record logs, `monitor.csv` and the
+checkpoints) lived on a rented GPU instance and were **not archived before that
+instance was released**, so they are gone. `results/` transcribes every value that
+was logged while the runs were live, and `tools/` contains the exact pipeline that
+produced them, so the study can be replayed on a GPU host.
 
 ## Measured behaviour
 

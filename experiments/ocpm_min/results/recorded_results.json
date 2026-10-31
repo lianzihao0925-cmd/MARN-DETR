@@ -1,0 +1,136 @@
+{
+  "provenance": {
+    "state": "transcribed",
+    "warning": "Raw artifacts were lost when the rented GPU instance was released. Values below were transcribed from the live session log; the scripts in tools/ regenerate the artifacts on a GPU host.",
+    "instance": {
+      "id": "qjAnnp",
+      "gpu": "RTX 5090 32GB",
+      "cuda": "12.8",
+      "driver": "595.84"
+    },
+    "protocol": {
+      "model": "rf-detr-small",
+      "weights_md5": "fb37061c1af7bace359c91b723a8d5c1",
+      "seed": 42,
+      "batch_size": 16,
+      "grad_accum_steps": 1,
+      "amp": "bf16",
+      "ema_decay": 0.993,
+      "scheduler": "cosine",
+      "warmup_epochs": 0.5,
+      "eval_max_dets": 100,
+      "val_images": 5000,
+      "train_images_full": 118287
+    },
+    "consistency_checks": {
+      "data_order_fingerprint": "de8272bc9bfaf5dd",
+      "train_config_sha256": "096cfef40e685d13",
+      "note": "identical across conditions A and B at equal step count"
+    }
+  },
+  "clean_coco": {
+    "reference": {
+      "official_pretrained": {"steps": 0, "AP": 0.5292},
+      "historical_10_epoch_baseline": {"steps": 73930, "AP": 0.5277}
+    },
+    "runs": [
+      {"arm": "A", "steps": 22179, "AP": 0.5278, "AP50": 0.7189, "AP75": 0.5692},
+      {"arm": "A", "steps": 2000, "AP": 0.5281, "AP50": 0.7193, "AP75": 0.5700, "APs": 0.2444, "APm": 0.5082, "APl": 0.7178},
+      {"arm": "B_random", "steps": 2000, "AP": 0.5280, "AP50": 0.7191, "AP75": 0.5693, "APs": 0.2439, "APm": 0.5080, "APl": 0.7182},
+      {"arm": "A", "steps": 7393, "AP": 0.5288, "AP50": 0.7196, "AP75": 0.5691, "note": "single epoch, discarded from the comparison"}
+    ],
+    "deltas": {"B_minus_A_at_2000_steps": -0.0001, "A_2000_minus_A_22179": 0.0003},
+    "cost_2000_batches": {
+      "A": {"train_seconds": 541.7, "seconds_per_batch": 0.219, "peak_allocated_GiB": 8.78, "peak_reserved_GiB": 10.16},
+      "B_random": {"train_seconds": 5461.7, "seconds_per_batch": 2.685, "peak_allocated_GiB": 8.83, "peak_reserved_GiB": 10.16, "ratio_vs_A": 10.1}
+    },
+    "bank_after_2000_steps_B": {
+      "slots_total": 320,
+      "slots_filled": 320,
+      "classes_covered": 80,
+      "classes_total": 80,
+      "duplicate_rate": 0.0,
+      "median_age_steps": 392,
+      "cumulative_fill": 320,
+      "cumulative_update": 11978,
+      "cumulative_replace": 160923,
+      "replacements_per_step_approx": 80,
+      "read_events": 16160,
+      "Q_write_mean": 0.478,
+      "Q_write_samples": 1287
+    }
+  },
+  "low_data": {
+    "subset": {"name": "coco_fewshot", "images": 958, "annotations": 9393, "classes_covered": 80, "per_class_target": 12, "val": "full val2017 (5000)"},
+    "steps": 1500,
+    "epochs": 25,
+    "lr_1e_5": {
+      "A_s42": 0.5222,
+      "A_s43": 0.5225,
+      "B_random_s42": 0.5223,
+      "B_random_s43": 0.5220,
+      "D_similarity_s42": 0.5220,
+      "max_spread": 0.0005,
+      "training_loss": {"start": 5.274, "end": 4.92}
+    },
+    "lr_1e_4": {
+      "A_s42": {"AP": 0.4862, "AP50": 0.6791, "AP75": 0.5195, "APs": 0.2042},
+      "A_s43": {"AP": 0.4865, "AP50": 0.6782, "AP75": 0.5202, "APs": 0.2002},
+      "B_random_s42": {"AP": 0.4859, "AP50": 0.6789, "AP75": 0.5202, "APs": 0.2014},
+      "B_random_s43": {"AP": 0.4818, "APs": 0.1990},
+      "D_similarity_s42": {"AP": 0.4863, "AP50": 0.6780, "AP75": 0.5204, "APs": 0.1981},
+      "B_wide_random_rho0.5_beta1.0": {"AP": 0.4875, "APs": 0.2124},
+      "D_wide_similarity_rho0.5_beta1.0": {"AP": 0.4829, "APs": 0.2010},
+      "deltas": {"D_minus_A": 0.0001, "B_minus_A": -0.0003, "D_wide_minus_A": -0.0033, "five_arm_span": 0.0046},
+      "seed_spread": {"A": 0.0003, "B": 0.0041, "ratio": 13.0}
+    },
+    "read_path_audit": {
+      "B_random": {"mean_cosine": -0.075, "mean_class_compatibility": 0.012, "mean_geometry_compatibility": -1.446},
+      "D_similarity": {"mean_cosine": 0.441, "mean_class_compatibility": 0.047, "mean_geometry_compatibility": -0.904},
+      "AP_difference_despite_read_quality_gap": 0.0004
+    },
+    "cost_seconds_per_step": {"A": 0.215, "B_random": 3.47, "D_similarity": [7.09, 11.6]}
+  },
+  "coco_c": {
+    "corruptions": ["gaussian_noise", "motion_blur", "contrast", "jpeg_compression", "saturate"],
+    "severities": [5, 3],
+    "images_per_set": 5000,
+    "severity_5_clean_checkpoint": {
+      "checkpoint": "A, 3 epochs, clean AP 0.5278",
+      "per_corruption": {
+        "gaussian_noise": {"AP": 0.1200, "AP50": 0.1834, "AP75": 0.1252, "APs": 0.0214},
+        "motion_blur": {"AP": 0.2116, "AP50": 0.3526, "AP75": 0.2169, "APs": 0.0062},
+        "contrast": {"AP": 0.2566, "AP50": 0.3702, "AP75": 0.2765, "APs": 0.0639},
+        "jpeg_compression": {"AP": 0.2956, "AP50": 0.4398, "AP75": 0.3128, "APs": 0.0767},
+        "saturate": {"AP": 0.4522}
+      }
+    },
+    "severity_5_same_source": {
+      "checkpoints": "A / B / D from the lr 1e-4 low-data runs",
+      "per_corruption": {
+        "gaussian_noise": {"A": 0.0937, "B": 0.0968, "D": 0.0947},
+        "motion_blur": {"A": 0.1895, "B": 0.1864, "D": 0.1875},
+        "contrast": {"A": 0.2076, "B": 0.2188, "D": 0.2217},
+        "jpeg_compression": {"A": 0.2702, "B": 0.2657, "D": 0.2682},
+        "saturate": {"A": 0.4056, "B": 0.4070, "D": 0.4067}
+      },
+      "mean": {"A": 0.2333, "B": 0.2349, "D": 0.2358, "D_minus_A": 0.0024}
+    },
+    "severity_3_same_source": {
+      "per_corruption": {
+        "gaussian_noise": {"A": 0.3392, "B": 0.3384, "D": 0.3357},
+        "motion_blur": {"A": 0.3100, "B": 0.3084, "D": 0.3093},
+        "contrast": {"A": 0.4445, "B": 0.4449, "D": 0.4453},
+        "jpeg_compression": {"A": 0.4190, "B": 0.4160, "D": 0.4174},
+        "saturate": {"A": 0.4758, "B": 0.4763, "D": 0.4755}
+      },
+      "mean": {"A": 0.3977, "B": 0.3968, "D": 0.3967, "D_minus_A": -0.0010}
+    },
+    "note": "the severity-5 contrast cell (+0.0141) does not reproduce at severity 3 (+0.0009) and the placebo arm also gains there; treated as a single-run fluctuation"
+  },
+  "incomplete_runs": [
+    {"run": "D_s43_lr1e4", "stopped_at_step": 749, "of_steps": 1500, "reason": "instance became unreachable and was later released"},
+    {"run": "B_all_s42", "status": "never started", "planned": "coverage ablation with queries_per_group=300"}
+  ],
+  "conclusion": "Across 18 completed conditions (8 on clean or subset data, 10 on corrupted validation sets) the prototype-memory read path produces no measurable AP change in either direction, costs 16-54x training time, and increases seed-to-seed variance by roughly 13x. The mechanism's structural ceiling (10% of queries, layer 0 only, zero-initialised residual, doubled amplitude bound) is consistent with the null result."
+}
